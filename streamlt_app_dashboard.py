@@ -86,41 +86,56 @@ with col3:
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# Gráfico con fondo transparente, sin título, borde azul y grid fina semi-transparente
-st.subheader("📈 Curvas OTDR Comparativas")
-fig, ax = plt.subplots(figsize=(12, 6), facecolor='none')
-ax.patch.set_alpha(0)
+# CSS para el recuadro que envuelve el container
+st.markdown(
+    """
+    <style>
+    .custom-container {
+        border: 3px solid #0089f9;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
-x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
+# Container para el subtítulo y gráfico
+with st.container():
+    st.markdown('<div class="custom-container">', unsafe_allow_html=True)
+    st.subheader("📈 Curvas OTDR Comparativas")
+    
+    fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')  # 70% tamaño (12*0.7, 6*0.7)
+    ax.patch.set_alpha(0)
 
-ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
-ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
+    x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+    x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
 
-for punto in eventos_extra.keys():
-    y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
-    ax.plot(punto, y_val, 'ro', label='_nolegend_')
+    ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
+    ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
 
-ax.set_xlabel("Distancia (km)", color="white")
-ax.set_ylabel("Potencia (dB)", color="white")
-# Quitar el título:
-# ax.set_title("Comparación de Curvas OTDR", color="white")  # comentado para quitar título
+    for punto in eventos_extra.keys():
+        y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
+        ax.plot(punto, y_val, 'ro', label='_nolegend_')
 
-# Grid fina y con transparencia 50%
-ax.grid(True, linewidth=0.5, alpha=0.5)
+    ax.set_xlabel("Distancia (km)", color="white")
+    ax.set_ylabel("Potencia (dB)", color="white")
+    # Título eliminado como pediste anteriormente
+    
+    ax.grid(True, linewidth=0.5, alpha=0.5)
+    ax.tick_params(colors='white')
 
-ax.tick_params(colors='white')
+    for spine in ax.spines.values():
+        spine.set_edgecolor("#0089f9")
+        spine.set_linewidth(2)
 
-# Enmarcar gráfico con borde azul #0089f9
-for spine in ax.spines.values():
-    spine.set_edgecolor("#0089f9")
-    spine.set_linewidth(2)
-
-legend = ax.legend()
-for text in legend.get_texts():
-    text.set_color("white")
-
-st.pyplot(fig)
+    legend = ax.legend(frameon=False)  # sin fondo
+    for text in legend.get_texts():
+        text.set_color("white")
+    
+    st.pyplot(fig)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Checkbox para seleccionar tabla
 st.subheader("📋 Mostrar tabla de eventos")
