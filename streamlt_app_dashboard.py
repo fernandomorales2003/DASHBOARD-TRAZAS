@@ -70,22 +70,31 @@ ax.grid(True)
 ax.legend()
 st.pyplot(fig)
 
-# --- NUEVOS INDICADORES ---
+# --- INDICADORES ACTUALIZADOS ---
 
 st.subheader("📊 Indicadores del Enlace 2025")
 
 col1, col2, col3 = st.columns(3)
 
+# Cálculo porcentaje de aumento atenuación total
+porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
+
 with col1:
-    st.metric(label="🔦 Atenuación Total", value=f"{at_total_2025:.2f} dB")
+    st.metric(
+        label="🔦 Atenuación Total", 
+        value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
+    )
 
 evento_max = max(eventos_2025.items(), key=lambda x: x[1])
 with col2:
     st.metric(label="🚨 Mayor Evento", value=f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]}")
 
 with col3:
-    densidad = len(eventos_2025) / distancia
-    st.metric(label="📍 Densidad de Eventos", value=f"{densidad:.2f} eventos/km")
+    eventos_adicionales = len(eventos_2025) - len(eventos_patron)
+    st.metric(
+        label="🛠️ Cantidad de Eventos Mantenimiento",
+        value=f"{eventos_adicionales}"
+    )
 
 # Checkbox para seleccionar tabla
 st.subheader("📋 Mostrar tabla de eventos")
@@ -147,4 +156,5 @@ elif tabla_2025:
         "Pérdida (dB)": "{:.2f}",
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
+
 
