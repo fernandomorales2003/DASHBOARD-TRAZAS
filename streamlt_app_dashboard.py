@@ -43,36 +43,8 @@ def generar_curva(at_km, eventos):
 at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values()), 2)
 at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 
-# Mostrar resumen
-st.markdown("### 🧪 Enlace simulado: `MZA-NORTE`")
-st.markdown(f"- Atenuación total `MZA-NORTE-2024-06`: **{at_total_2024:.2f} dB**")
-st.markdown(f"- Atenuación total `MZA-NORTE-2025-06`: **{at_total_2025:.2f} dB**")
-
-# Gráfico
-st.subheader("📈 Curvas OTDR Comparativas")
-fig, ax = plt.subplots(figsize=(12, 6))
-
-x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
-x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
-
-ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="blue")
-ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="green")
-
-# Marcar eventos adicionales 2025
-for punto in eventos_extra.keys():
-    y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
-    ax.plot(punto, y_val, 'ro', label='_nolegend_')
-
-ax.set_xlabel("Distancia (km)")
-ax.set_ylabel("Potencia (dB)")
-ax.set_title("Comparación de Curvas OTDR")
-ax.grid(True)
-ax.legend()
-st.pyplot(fig)
-
 # --- INDICADORES ACTUALIZADOS ---
-
-st.subheader("📊 Indicadores del Enlace 2025")
+st.subheader("📊 ANÁLISIS ENLACE MZA-NORTE")
 
 col1, col2, col3 = st.columns(3)
 
@@ -95,6 +67,31 @@ with col3:
         label="🛠️ Cantidad de Eventos Mantenimiento",
         value=f"{eventos_adicionales}"
     )
+
+st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
+st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+
+# Gráfico
+st.subheader("📈 Curvas OTDR Comparativas")
+fig, ax = plt.subplots(figsize=(12, 6))
+
+x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
+
+ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="blue")
+ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="green")
+
+# Marcar eventos adicionales 2025
+for punto in eventos_extra.keys():
+    y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
+    ax.plot(punto, y_val, 'ro', label='_nolegend_')
+
+ax.set_xlabel("Distancia (km)")
+ax.set_ylabel("Potencia (dB)")
+ax.set_title("Comparación de Curvas OTDR")
+ax.grid(True)
+ax.legend()
+st.pyplot(fig)
 
 # Checkbox para seleccionar tabla
 st.subheader("📋 Mostrar tabla de eventos")
@@ -156,5 +153,4 @@ elif tabla_2025:
         "Pérdida (dB)": "{:.2f}",
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
-
 
