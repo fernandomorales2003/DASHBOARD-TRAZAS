@@ -83,11 +83,10 @@ with col3:
         value=f"{eventos_adicionales}"
     )
 
-# Mostrar Atenuaciones fuera del recuadro
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# Solo abrimos el div para el recuadro azul aquí, antes de Curvas OTDR Comparativas
+# CSS para el recuadro que envuelve el container
 st.markdown(
     """
     <style>
@@ -102,13 +101,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="custom-container">', unsafe_allow_html=True)
-
-st.subheader("📈 Curvas OTDR Comparativas")
-
-col1, col2 = st.columns([1, 1])  # 50% y 50%
-with col1:
-    fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')
+# Container para el subtítulo y gráfico
+with st.container():
+    st.markdown('<div class="custom-container">', unsafe_allow_html=True)
+    st.subheader("📈 Curvas OTDR Comparativas")
+    
+    fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')  # 70% tamaño (12*0.7, 6*0.7)
     ax.patch.set_alpha(0)
 
     x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
@@ -123,7 +121,8 @@ with col1:
 
     ax.set_xlabel("Distancia (km)", color="white")
     ax.set_ylabel("Potencia (dB)", color="white")
-
+    # Título eliminado como pediste anteriormente
+    
     ax.grid(True, linewidth=0.5, alpha=0.5)
     ax.tick_params(colors='white')
 
@@ -131,19 +130,19 @@ with col1:
         spine.set_edgecolor("#0089f9")
         spine.set_linewidth(2)
 
-    legend = ax.legend(frameon=False)
+    legend = ax.legend(frameon=False)  # sin fondo
     for text in legend.get_texts():
         text.set_color("white")
-
+    
     st.pyplot(fig)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    st.write("")  # Columna vacía para ocupar espacio
-
-col3, col4 = st.columns(2)
-with col3:
+# Checkbox para seleccionar tabla
+st.subheader("📋 Mostrar tabla de eventos")
+col1, col2 = st.columns(2)
+with col1:
     tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
-with col4:
+with col2:
     tabla_2025 = st.checkbox("Ver eventos 2025", value=False)
 
 if tabla_2024 and tabla_2025:
@@ -197,5 +196,3 @@ elif tabla_2025:
         "Pérdida (dB)": "{:.2f}",
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
