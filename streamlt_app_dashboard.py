@@ -162,10 +162,56 @@ elif tabla_2025:
         "Atenuación acumulada (dB)": at_total_2025
     })
     df_tabla = pd.DataFrame(tabla)
-    st.dataframe(df_tabla.style.format({
-        "Distancia (km)": "{:.2f}",
-        "Pérdida (dB)": "{:.2f}",
-        "Atenuación acumulada (dB)": "{:.2f}"
-    }), use_container_width=True)
+    # Resaltar pérdidas mayores a 0.3 dB en rojo
+    def highlight_loss(val):
+        color = 'red' if val > 0.3 else 'black'
+        return f'color: {color}'
 
+    st.dataframe(
+        df_tabla.style
+        .format({
+            "Distancia (km)": "{:.2f}",
+            "Pérdida (dB)": "{:.2f}",
+            "Atenuación acumulada (dB)": "{:.2f}"
+        })
+        .applymap(highlight_loss, subset=["Pérdida (dB)"]),
+        use_container_width=True
+    )
 
+# -------------------------
+# Gráfico de barras para pérdidas comparadas en eventos comunes
+# -------------------------
+st.subheader("📊 Comparación de pérdidas por evento (2024 vs 2025)")
+
+# Emparejar eventos por distancia para comparación
+distancias_comunes = sorted(set(eventos_patron.keys()).intersection(set(eventos_2025.keys())))
+perdidas_2024 = [eventos_patron[d] for d in distancias_comunes]
+perdidas_2025 = [eventos_2025[d] for d in distancias_comunes]
+
+fig2, ax2 = plt.subplots(figsize=(10, 4))
+x = np.arange(len(distancias_comunes))
+width = 0.35
+ax2.bar(x - width/2, perdidas_2024, width, label="2024", color="#008cff")
+ax2.bar(x + width/2, perdidas_2025, width, label="2025", color="#ff6b00")
+ax2.set_xticks(x)
+ax2.set_xticklabels([f"{d:.1f} km" for d in distancias_comunes])
+ax2.set_ylabel("Pérdida (dB)")
+ax2.set_title("Comparación de pérdidas en eventos comunes")
+ax2.legend()
+ax2.grid(True)
+st.pyplot(fig2)
+
+# -------------------------
+# Explicación educativa
+# -------------------------
+with st.expander("ℹ️ ¿Qué es una curva OTDR?"):
+    st.markdown("""
+    Una curva OTDR (Reflectómetro Óptico en el Dominio del Tiempo) representa la retrodispersión de luz a lo largo de una fibra óptica.  
+    Sirve para detectar:
+    - Fusiones (pérdidas pequeñas)
+    - Conectores o empalmes defectuosos
+    - Cortes o pérdidas severas
+
+    Una curva descendente constante representa la atenuación por kilómetro.  
+    Saltos hacia abajo indican eventos críticos de pérdida.
+    """)
