@@ -11,11 +11,6 @@ st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
 distancia = 50.0  # fijo para MZA-NORTE
 atenuacion_por_km = 0.21  # para 1550 nm
 
-st.markdown("### 🧪 Enlace simulado: `MZA-NORTE-2024-06`")
-st.markdown("- Longitud: 50 km")
-st.markdown("- Atenuación por km: 0.21 dB/km")
-st.markdown("- Eventos cada 4 km: 0.15 dB")
-
 # Generar eventos patrón cada 4 km
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
 
@@ -44,6 +39,15 @@ def generar_curva(at_km, eventos):
     y_total = np.concatenate([y_ini, y_fibra, y_fin])
     return x_total, y_total
 
+# Cálculo de atenuación total
+at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values()), 2)
+at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
+
+# Mostrar resumen
+st.markdown("### 🧪 Enlace simulado: `MZA-NORTE`")
+st.markdown(f"- Atenuación total `MZA-NORTE-2024-06`: **{at_total_2024:.2f} dB**")
+st.markdown(f"- Atenuación total `MZA-NORTE-2025-06`: **{at_total_2025:.2f} dB**")
+
 # Gráfico
 st.subheader("📈 Curvas OTDR Comparativas")
 fig, ax = plt.subplots(figsize=(12, 6))
@@ -66,34 +70,63 @@ ax.grid(True)
 ax.legend()
 st.pyplot(fig)
 
-# Tabla de eventos 2025
-st.subheader("📋 Tabla de Eventos - `MZA-NORTE-2025-06`")
-acumulado = 0
-tabla = []
-for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
-    acumulado += att
-    total = atenuacion_por_km * dist + acumulado
+# Checkbox para seleccionar tabla
+st.subheader("📋 Mostrar tabla de eventos")
+col1, col2 = st.columns(2)
+with col1:
+    tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
+with col2:
+    tabla_2025 = st.checkbox("Ver eventos 2025", value=False)
+
+# Mostrar tabla correspondiente
+if tabla_2024 and tabla_2025:
+    st.warning("Selecciona solo una tabla a la vez.")
+elif tabla_2024:
+    acumulado = 0
+    tabla = []
+    for i, (dist, att) in enumerate(sorted(eventos_patron.items()), start=1):
+        acumulado += att
+        total = atenuacion_por_km * dist + acumulado
+        tabla.append({
+            "Nro Evento": i,
+            "Distancia (km)": dist,
+            "Pérdida (dB)": att,
+            "Atenuación acumulada (dB)": round(total, 2)
+        })
     tabla.append({
-        "Nro Evento": i,
-        "Distancia (km)": dist,
-        "Pérdida (dB)": att,
-        "Atenuación acumulada (dB)": round(total, 2)
+        "Nro Evento": "—",
+        "Distancia (km)": distancia,
+        "Pérdida (dB)": 0.0,
+        "Atenuación acumulada (dB)": at_total_2024
     })
+    df_tabla = pd.DataFrame(tabla)
+    st.dataframe(df_tabla.style.format({
+        "Distancia (km)": "{:.2f}",
+        "Pérdida (dB)": "{:.2f}",
+        "Atenuación acumulada (dB)": "{:.2f}"
+    }), use_container_width=True)
 
-# Total final
-total_final = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
-tabla.append({
-    "Nro Evento": "—",
-    "Distancia (km)": distancia,
-    "Pérdida (dB)": 0.0,
-    "Atenuación acumulada (dB)": total_final
-})
-
-df_tabla = pd.DataFrame(tabla)
-st.dataframe(df_tabla.style.format({
-    "Distancia (km)": "{:.2f}",
-    "Pérdida (dB)": "{:.2f}",
-    "Atenuación acumulada (dB)": "{:.2f}"
-}), use_container_width=True)
-
-st.success(f"🔎 Atenuación total del enlace 2025: **{total_final:.2f} dB**")
+elif tabla_2025:
+    acumulado = 0
+    tabla = []
+    for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
+        acumulado += att
+        total = atenuacion_por_km * dist + acumulado
+        tabla.append({
+            "Nro Evento": i,
+            "Distancia (km)": dist,
+            "Pérdida (dB)": att,
+            "Atenuación acumulada (dB)": round(total, 2)
+        })
+    tabla.append({
+        "Nro Evento": "—",
+        "Distancia (km)": distancia,
+        "Pérdida (dB)": 0.0,
+        "Atenuación acumulada (dB)": at_total_2025
+    })
+    df_tabla = pd.DataFrame(tabla)
+    st.dataframe(df_tabla.style.format({
+        "Distancia (km)": "{:.2f}",
+        "Pérdida (dB)": "{:.2f}",
+        "Atenuación acumulada (dB)": "{:.2f}"
+    }), use_container_width=True)
