@@ -4,89 +4,86 @@ import numpy as np
 import pandas as pd
 
 st.set_page_config(layout="wide")
+st.title("📡 Simulación OTDR - MENDOZANORTE 2024 vs 2025")
 
-# Título superior de la página
-st.markdown("## Dashboard OTDR - TRONCAL MZA-NORTE")
+# --- CURVA 2024 ---
+st.header("🔹 Curva OTDR: MENDOZANORTE-2024-06")
 
-# Simular curvas limpias (sin ruido)
-def generar_curva(distancia_km, nombre, eventos=[], base_atenuacion=0.25):
-    pasos = 1000
-    x = np.linspace(0, distancia_km, pasos)
-    y = base_atenuacion * x
+DISTANCIA_TOTAL = 40.0
+PUNTOS_EVENTO_2024 = [i for i in range(4, int(DISTANCIA_TOTAL)+1, 4)]
+ATENUACION_EVENTO_2024 = 0.15
 
-    # Aplicar eventos como caídas bruscas
-    for evento in eventos:
-        pos = int((evento['distancia'] / distancia_km) * pasos)
-        y[pos:] -= evento['pérdida']
+# Construcción de la curva
+x_2024 = [0.0]
+y_2024 = [0.0]
+at_2024 = 0.21
 
-    return x, y
+atenuacion_acumulada_2024 = 0
 
-# Eventos reales (solo los de pérdida mayor a 0.30 dB se marcan)
-eventos_2024 = [{'distancia': 10, 'pérdida': 0.25}, {'distancia': 25, 'pérdida': 0.35}, {'distancia': 40, 'pérdida': 0.20}]
-eventos_2025 = [{'distancia': 10, 'pérdida': 0.25}, {'distancia': 25, 'pérdida': 0.60}, {'distancia': 40, 'pérdida': 0.45}]
+for punto in np.linspace(0, DISTANCIA_TOTAL, 1000):
+    if any(abs(punto - e) < 0.02 for e in PUNTOS_EVENTO_2024):
+        atenuacion_acumulada_2024 += ATENUACION_EVENTO_2024
+    y_2024.append(-at_2024 * punto - atenuacion_acumulada_2024)
+    x_2024.append(punto)
 
-# Generar curvas
-x_2024, y_2024 = generar_curva(50, "2024/06", eventos_2024)
-x_2025, y_2025 = generar_curva(50, "2025/06", eventos_2025)
+fig1, ax1 = plt.subplots(figsize=(10, 4))
+ax1.plot(x_2024, y_2024, label="MENDOZANORTE-2024-06", color="blue")
+ax1.set_xlabel("Distancia (km)")
+ax1.set_ylabel("Potencia (dB)")
+ax1.set_title("Curva OTDR - 2024")
+ax1.grid(True)
+ax1.legend()
+st.pyplot(fig1)
 
-# Fila superior
-with st.container():
-    col1, col2, col3 = st.columns([1, 1, 1])
+# Tabla de eventos 2024
+df_eventos_2024 = pd.DataFrame({
+    "Distancia (km)": PUNTOS_EVENTO_2024,
+    "Atenuación (dB)": [ATENUACION_EVENTO_2024]*len(PUNTOS_EVENTO_2024)
+})
+at_total_2024 = round(sum(df_eventos_2024["Atenuación (dB)"]), 2)
 
-    with col1:
-        st.markdown("### 🔷 TRONCAL MZA-NORTE - Comparación 2024/06 vs 2025/06 (1550 nm)")
+st.dataframe(df_eventos_2024)
+st.markdown(f"**Atenuación total 2024:** `{at_total_2024} dB`")
 
-        mostrar_2024 = st.checkbox("Mostrar curva 2024/06", value=True)
-        mostrar_2025 = st.checkbox("Mostrar curva 2025/06", value=True)
+# --- CURVA 2025 ---
+st.header("🔹 Curva OTDR: MENDOZANORTE-2025-07")
 
-        fig, ax = plt.subplots(figsize=(8, 4))
-        if mostrar_2024:
-            ax.plot(x_2024, y_2024, label="2024/06", color="blue")
-            for e in eventos_2024:
-                if e['pérdida'] > 0.30:
-                    ax.plot(e['distancia'], 0.25*e['distancia'] - e['pérdida'], 'o', color='blue')
+np.random.seed(42)
+eventos_adicionales = np.sort(np.random.uniform(0, DISTANCIA_TOTAL, 8))
+atenuaciones_adicionales = np.round(np.random.uniform(0.10, 0.75, 8), 2)
 
-        if mostrar_2025:
-            ax.plot(x_2025, y_2025, label="2025/06", color="red")
-            for e in eventos_2025:
-                if e['pérdida'] > 0.30:
-                    ax.plot(e['distancia'], 0.25*e['distancia'] - e['pérdida'], 'o', color='red')
+# Base: eventos 2024 + nuevos
+todos_los_eventos_2025 = list(PUNTOS_EVENTO_2024) + list(eventos_adicionales)
+atenuaciones_2025 = [ATENUACION_EVENTO_2024]*len(PUNTOS_EVENTO_2024) + list(atenuaciones_adicionales)
 
-        ax.set_xlabel("Distancia (km)")
-        ax.set_ylabel("Nivel de señal (dB)")
-        ax.set_title("Curva OTDR - Comparación")
-        ax.legend()
-        ax.grid(True)
-        ax.text(35, -5, "🔴 Eventos con pérdida > 0.30 dB marcados", fontsize=8)
-        st.pyplot(fig)
+# Construcción curva 2025
+x_2025 = [0.0]
+y_2025 = [0.0]
+atenuacion_acumulada_2025 = 0
 
-# Tabla de eventos debajo
-st.markdown("### 📊 Tabla de Eventos Detectados")
+for punto in np.linspace(0, DISTANCIA_TOTAL, 1000):
+    for e, a in zip(todos_los_eventos_2025, atenuaciones_2025):
+        if abs(punto - e) < 0.02:
+            atenuacion_acumulada_2025 += a
+    y_2025.append(-at_2024 * punto - atenuacion_acumulada_2025)
+    x_2025.append(punto)
 
-def tabla_eventos(nombre, eventos):
-    filtrados = [e for e in eventos if e['pérdida'] > 0.30]
-    df = pd.DataFrame(filtrados)
-    df['Curva'] = nombre
-    return df[['Curva', 'distancia', 'pérdida']]
+fig2, ax2 = plt.subplots(figsize=(10, 4))
+ax2.plot(x_2025, y_2025, label="MENDOZANORTE-2025-07", color="green")
+ax2.set_xlabel("Distancia (km)")
+ax2.set_ylabel("Potencia (dB)")
+ax2.set_title("Curva OTDR - 2025")
+ax2.grid(True)
+ax2.legend()
+st.pyplot(fig2)
 
-df_2024 = tabla_eventos("2024/06", eventos_2024)
-df_2025 = tabla_eventos("2025/06", eventos_2025)
+# Tabla de eventos 2025
+df_eventos_2025 = pd.DataFrame({
+    "Distancia (km)": np.round(todos_los_eventos_2025, 2),
+    "Atenuación (dB)": np.round(atenuaciones_2025, 2)
+})
+at_total_2025 = round(sum(df_eventos_2025["Atenuación (dB)"]), 2)
 
-df_final = pd.concat([df_2024, df_2025])
-df_final.columns = ['Curva', 'Distancia (km)', 'Pérdida (dB)']
-st.dataframe(df_final, use_container_width=True)
-
-# Presupuesto de pérdidas
-st.markdown("### 🧮 Presupuesto de Pérdidas Estimado")
-
-def calcular_presupuesto(eventos, conector_ini=0.5, conector_fin=0.5):
-    perdidas_eventos = sum(e['pérdida'] for e in eventos)
-    perdida_total = perdidas_eventos + conector_ini + conector_fin
-    return round(perdida_total, 2)
-
-col_p1, col_p2 = st.columns(2)
-with col_p1:
-    st.metric("Total Pérdidas 2024/06", f"{calcular_presupuesto(eventos_2024)} dB")
-with col_p2:
-    st.metric("Total Pérdidas 2025/06", f"{calcular_presupuesto(eventos_2025)} dB")
+st.dataframe(df_eventos_2025)
+st.markdown(f"**Atenuación total 2025:** `{at_total_2025} dB`")
 
