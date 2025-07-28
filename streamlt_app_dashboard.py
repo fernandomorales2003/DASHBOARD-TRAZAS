@@ -2,107 +2,156 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 
-# ---------- ESTILO PERSONALIZADO ----------
-st.markdown("""
-    <style>
-        body {
-            background-color: #0f256e;
-            color: #f0f0f0;
-        }
-        .stApp {
-            background-color: #0f256e;
-        }
-        .css-1d391kg {  /* Títulos grandes */
-            color: #ffffff;
-        }
-        .css-10trblm, .css-1v3fvcr {  /* Subtítulos y texto normal */
-            color: #f0f0f0;
-        }
-        .css-1x8cf1d {  /* Caja de sliders y selects */
-            background-color: #1e3c8a;
-            border-radius: 10px;
-        }
-        .stSlider > div > div {
-            background-color: #1e3c8a;
-        }
-        .stCheckbox > label {
-            color: #ffffff !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# ---------- CONFIGURACIÓN DE PÁGINA ----------
 st.set_page_config(layout="wide")
-st.title("📡 Simulador de Medición OTDR - Fibra Óptica")
+st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
 
-# ---------- PARÁMETROS ----------
-distancia = st.slider("📏 Distancia del tramo (km)", 1.0, 80.0, 50.0, step=1.0)
+# Parámetros del enlace
+distancia = 50.0  # fijo para MZA-NORTE
+atenuacion_por_km = 0.21  # para 1550 nm
 
-# ---------- GENERACIÓN DE CURVAS OTDR ----------
-x = np.linspace(0, distancia, 1000)
-curva_2024 = -0.21 * x  # atenuación 0.21 dB/km
-ruido_2024 = np.random.normal(0, 0.02, len(x))
-curva_2024 += ruido_2024
+# Generar eventos patrón cada 4 km
+eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
 
-curva_2025 = curva_2024.copy()
-eventos_adicionales = 8
-posiciones = np.random.choice(len(x), eventos_adicionales, replace=False)
-curva_2025[posiciones] -= np.random.uniform(0.1, 0.5, eventos_adicionales)
+# Generar eventos adicionales aleatorios para curva 2025
+puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
+puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
+eventos_extra = {round(p, 2): round(random.uniform(0.15, 0.75), 2) for p in puntos_nuevos}
+eventos_2025 = dict(sorted({**eventos_patron, **eventos_extra}.items()))
 
-# ---------- VISUALIZACIÓN DE CURVAS ----------
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(x, curva_2024, label="Curva OTDR - 2024", color="cyan")
-ax.plot(x, curva_2025, label="Curva OTDR - 2025", color="yellow")
-ax.set_xlabel("Distancia (km)")
-ax.set_ylabel("Potencia (dB)")
-ax.set_facecolor("#0f256e")
-fig.patch.set_facecolor('#0f256e')
-ax.legend()
-ax.grid(True, color='#444444')
+# Función para generar curva
+def generar_curva(at_km, eventos):
+    x_ini = np.array([0.0, 0.005, 0.075])
+    y_ini = np.array([0.0, 0.8, -0.25])
 
-st.pyplot(fig)
+    x_fibra = np.linspace(0.075, distancia - 0.075, 1000)
+    y_fibra = -at_km * x_fibra + y_ini[-1]
+    for punto, perdida in eventos.items():
+        idx = np.searchsorted(x_fibra, punto)
+        y_fibra[idx:] -= perdida
 
-# ---------- CHECKBOX PARA MOSTRAR TABLAS ----------
-col1, col2 = st.columns(2)
+    y_fin_base = y_fibra[-1]
+    x_fin = np.array([distancia - 0.075 + 0.005, distancia - 0.075 + 0.010, distancia])
+    y_fin = np.array([y_fin_base, y_fin_base + 0.8, y_fin_base - 0.5])
 
-with col1:
-    if st.checkbox("📋 Mostrar eventos 2024"):
-        eventos_2024 = pd.DataFrame({
-            "Tipo": ["Empalme", "Conector", "Empalme"],
-            "Distancia (km)": [5, 20, 35],
-            "Pérdida (dB)": [0.1, 0.3, 0.15]
-        })
-        eventos_2024["Acumulado (dB)"] = eventos_2024["Pérdida (dB)"].cumsum()
-        st.write("### Tabla de Eventos 2024")
-        st.dataframe(eventos_2024)
+    x_total = np.concatenate([x_ini, x_fibra, x_fin])
+    y_total = np.concatenate([y_ini, y_fibra, y_fin])
+    return x_total, y_total
 
-with col2:
-    if st.checkbox("📋 Mostrar eventos 2025"):
-        eventos_2025 = pd.DataFrame({
-            "Tipo": ["Empalme", "Conector", "Empalme", "Empalme", "Conector", "Empalme", "Empalme", "Empalme", "Conector", "Empalme", "Empalme"],
-            "Distancia (km)": sorted(np.random.choice(np.arange(1, distancia), 11, replace=False)),
-            "Pérdida (dB)": np.round(np.random.uniform(0.1, 0.5, 11), 2)
-        })
-        eventos_2025["Acumulado (dB)"] = eventos_2025["Pérdida (dB)"].cumsum()
-        st.write("### Tabla de Eventos 2025")
-        st.dataframe(eventos_2025)
+# Cálculo de atenuación total
+at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values()), 2)
+at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 
-# ---------- ANÁLISIS DEL ENLACE ----------
+# --- INDICADORES ACTUALIZADOS ---
 st.subheader("📊 ANÁLISIS ENLACE MZA-NORTE")
 
-atenuacion_total_2024 = 0.21 * distancia + eventos_2024["Pérdida (dB)"].sum()
-atenuacion_total_2025 = 0.21 * distancia + eventos_2025["Pérdida (dB)"].sum()
-porcentaje_aumento = (atenuacion_total_2025 - atenuacion_total_2024) / atenuacion_total_2024 * 100
-eventos_mantenimiento = len(eventos_2025) - len(eventos_2024)
-
 col1, col2, col3 = st.columns(3)
-col1.metric("📉 Atenuación Total 2024", f"{atenuacion_total_2024:.2f} dB")
-col2.metric("📈 Atenuación Total 2025", f"{atenuacion_total_2025:.2f} dB", f"{porcentaje_aumento:.1f}%")
-col3.metric("🔧 Cant. de Eventos Mantenimiento", f"{eventos_mantenimiento}")
 
-# ---------- VALORES DE ATENUACIÓN TOTAL ----------
-st.write("#### 📌 Valores Finales de Atenuación Total:")
-st.markdown(f"- ✅ **Atenuación Total 2024:** {atenuacion_total_2024:.2f} dB")
-st.markdown(f"- ✅ **Atenuación Total 2025:** {atenuacion_total_2025:.2f} dB")
+# Cálculo porcentaje de aumento atenuación total
+porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
+
+with col1:
+    st.metric(
+        label="🔦 Atenuación Total", 
+        value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
+    )
+
+evento_max = max(eventos_2025.items(), key=lambda x: x[1])
+with col2:
+    st.metric(label="🚨 Mayor Evento", value=f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]}")
+
+with col3:
+    eventos_adicionales = len(eventos_2025) - len(eventos_patron)
+    st.metric(
+        label="🛠️ Cantidad de Eventos Mantenimiento",
+        value=f"{eventos_adicionales}"
+    )
+
+st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
+st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+
+# Gráfico
+st.subheader("📈 Curvas OTDR Comparativas")
+fig, ax = plt.subplots(figsize=(12, 6))
+
+x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
+
+ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="blue")
+ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="green")
+
+# Marcar eventos adicionales 2025
+for punto in eventos_extra.keys():
+    y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
+    ax.plot(punto, y_val, 'ro', label='_nolegend_')
+
+ax.set_xlabel("Distancia (km)")
+ax.set_ylabel("Potencia (dB)")
+ax.set_title("Comparación de Curvas OTDR")
+ax.grid(True)
+ax.legend()
+st.pyplot(fig)
+
+# Checkbox para seleccionar tabla
+st.subheader("📋 Mostrar tabla de eventos")
+col1, col2 = st.columns(2)
+with col1:
+    tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
+with col2:
+    tabla_2025 = st.checkbox("Ver eventos 2025", value=False)
+
+# Mostrar tabla correspondiente
+if tabla_2024 and tabla_2025:
+    st.warning("Selecciona solo una tabla a la vez.")
+elif tabla_2024:
+    acumulado = 0
+    tabla = []
+    for i, (dist, att) in enumerate(sorted(eventos_patron.items()), start=1):
+        acumulado += att
+        total = atenuacion_por_km * dist + acumulado
+        tabla.append({
+            "Nro Evento": i,
+            "Distancia (km)": dist,
+            "Pérdida (dB)": att,
+            "Atenuación acumulada (dB)": round(total, 2)
+        })
+    tabla.append({
+        "Nro Evento": "—",
+        "Distancia (km)": distancia,
+        "Pérdida (dB)": 0.0,
+        "Atenuación acumulada (dB)": at_total_2024
+    })
+    df_tabla = pd.DataFrame(tabla)
+    st.dataframe(df_tabla.style.format({
+        "Distancia (km)": "{:.2f}",
+        "Pérdida (dB)": "{:.2f}",
+        "Atenuación acumulada (dB)": "{:.2f}"
+    }), use_container_width=True)
+
+elif tabla_2025:
+    acumulado = 0
+    tabla = []
+    for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
+        acumulado += att
+        total = atenuacion_por_km * dist + acumulado
+        tabla.append({
+            "Nro Evento": i,
+            "Distancia (km)": dist,
+            "Pérdida (dB)": att,
+            "Atenuación acumulada (dB)": round(total, 2)
+        })
+    tabla.append({
+        "Nro Evento": "—",
+        "Distancia (km)": distancia,
+        "Pérdida (dB)": 0.0,
+        "Atenuación acumulada (dB)": at_total_2025
+    })
+    df_tabla = pd.DataFrame(tabla)
+    st.dataframe(df_tabla.style.format({
+        "Distancia (km)": "{:.2f}",
+        "Pérdida (dB)": "{:.2f}",
+        "Atenuación acumulada (dB)": "{:.2f}"
+    }), use_container_width=True)
+
 
