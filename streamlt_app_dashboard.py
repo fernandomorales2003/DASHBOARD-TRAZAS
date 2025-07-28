@@ -4,6 +4,17 @@ import numpy as np
 import pandas as pd
 import random
 
+st.set_page_config(
+    page_title="Mi Dashboard OTDR",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    theme={
+        "base": "dark",
+        "textColor": "darkGoldenrod",
+        "linkColor": "darkOrchid",
+    }
+)
+
 st.set_page_config(layout="wide")
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
 
