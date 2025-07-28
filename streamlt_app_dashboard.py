@@ -4,9 +4,38 @@ import numpy as np
 import pandas as pd
 import random
 
+# Tema configurado directamente en el script, para que coincida con lo que pediste
+# (esto solo es para mostrar en este código, la forma oficial es configurarlo en el archivo .streamlit/config.toml o app config)
+st.markdown(
+    """
+    <style>
+    :root {
+        --primary-color: #2be2ff;
+        --background-color: #001146;
+        --secondary-background-color: #ffa90c;
+        --text-color: #ffffff;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.set_page_config(
     layout="wide",
     page_title="Comparador Curvas OTDR"
+)
+
+# Agregar script para ocultar el contenedor no deseado (esto es un hack y puede romper si cambia la clase)
+st.markdown(
+    """
+    <script>
+    window.onload = function() {
+        let el = document.querySelector('.stElementContainer.element-container.st-emotion-cache-v3w3zg.e1msl4mp0');
+        if(el) { el.style.display = 'none'; }
+    }
+    </script>
+    """,
+    unsafe_allow_html=True,
 )
 
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
@@ -121,7 +150,6 @@ with st.container():
 
     ax.set_xlabel("Distancia (km)", color="white")
     ax.set_ylabel("Potencia (dB)", color="white")
-    # Título eliminado como pediste anteriormente
     
     ax.grid(True, linewidth=0.5, alpha=0.5)
     ax.tick_params(colors='white')
