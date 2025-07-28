@@ -6,12 +6,7 @@ import random
 
 st.set_page_config(
     layout="wide",
-    page_title="Comparador Curvas OTDR",
-    theme={
-        "base": "dark",
-        "textColor": "darkGoldenrod",
-        "linkColor": "darkOrchid",
-    }
+    page_title="Comparador Curvas OTDR"
 )
 
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
