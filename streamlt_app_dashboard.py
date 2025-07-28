@@ -52,6 +52,7 @@ st.subheader("📊 ANÁLISIS ENLACE MZA-NORTE")
 
 col1, col2, col3 = st.columns(3)
 
+# Cálculo porcentaje de aumento atenuación total
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
 with col1:
@@ -82,6 +83,7 @@ with col3:
         value=f"{eventos_adicionales}"
     )
 
+# Mostrar Atenuaciones fuera del contenedor azul
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
@@ -94,19 +96,19 @@ st.markdown(
         border-radius: 8px;
         padding: 10px;
         margin-bottom: 20px;
-        max-width: 900px;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Abrimos div del contenedor azul que incluye todo (curvas + tablas)
+# Abrimos el div para el contenedor estilizado justo antes del título y todo lo que queremos que tenga el borde
 st.markdown('<div class="custom-container">', unsafe_allow_html=True)
 
+# Título y contenido dentro del contenedor azul
 st.subheader("📈 Curvas OTDR Comparativas")
 
-col1, col2 = st.columns([1, 1])  # 50% / 50%
+col1, col2 = st.columns([1, 1])  # 50% y 50%
 with col1:
     fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')
     ax.patch.set_alpha(0)
@@ -138,9 +140,9 @@ with col1:
     st.pyplot(fig)
 
 with col2:
-    st.write("")  # espacio vacío para balancear
+    st.write("")  # Columna vacía para ocupar espacio
 
-# Checkboxes para mostrar tablas (sin título)
+# Checkboxes para mostrar tablas dentro del mismo contenedor azul
 col3, col4 = st.columns(2)
 with col3:
     tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
@@ -173,6 +175,7 @@ elif tabla_2024:
         "Pérdida (dB)": "{:.2f}",
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
+
 elif tabla_2025:
     acumulado = 0
     tabla = []
@@ -198,6 +201,6 @@ elif tabla_2025:
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
 
-# Cerramos div del contenedor azul
+# Cerramos el div azul aquí, al final del bloque deseado
 st.markdown('</div>', unsafe_allow_html=True)
 
