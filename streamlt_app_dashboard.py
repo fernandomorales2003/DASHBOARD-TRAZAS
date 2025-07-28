@@ -86,26 +86,33 @@ with col3:
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# Gráfico
+# Gráfico con fondo transparente y colores personalizados
 st.subheader("📈 Curvas OTDR Comparativas")
-fig, ax = plt.subplots(figsize=(12, 6))
+fig, ax = plt.subplots(figsize=(12, 6), facecolor='none')  # fondo transparente del fig
+ax.patch.set_alpha(0)  # fondo transparente del área del gráfico
 
 x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
 x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
 
-ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="blue")
-ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="green")
+ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
+ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
 
 # Marcar eventos adicionales 2025
 for punto in eventos_extra.keys():
     y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
     ax.plot(punto, y_val, 'ro', label='_nolegend_')
 
-ax.set_xlabel("Distancia (km)")
-ax.set_ylabel("Potencia (dB)")
-ax.set_title("Comparación de Curvas OTDR")
+ax.set_xlabel("Distancia (km)", color="white")
+ax.set_ylabel("Potencia (dB)", color="white")
+ax.set_title("Comparación de Curvas OTDR", color="white")
 ax.grid(True)
-ax.legend()
+
+ax.tick_params(colors='white')  # ticks en blanco
+
+legend = ax.legend()
+for text in legend.get_texts():
+    text.set_color("white")  # leyenda en blanco
+
 st.pyplot(fig)
 
 # Checkbox para seleccionar tabla
