@@ -101,9 +101,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Container general para el bloque de curvas OTDR comparativas
+# Container general para el bloque de curvas OTDR comparativas + tablas
 with st.container():
     st.markdown('<div class="custom-container">', unsafe_allow_html=True)
+    
     st.subheader("📈 Curvas OTDR Comparativas")
 
     col1, col2 = st.columns([1, 1])  # 50% y 50%
@@ -140,64 +141,63 @@ with st.container():
     with col2:
         st.write("")  # Columna vacía para ocupar espacio
 
+    # Aquí agregamos las tablas sin título y dentro del mismo contenedor
+    col3, col4 = st.columns(2)
+    with col3:
+        tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
+    with col4:
+        tabla_2025 = st.checkbox("Ver eventos 2025", value=False)
+
+    if tabla_2024 and tabla_2025:
+        st.warning("Selecciona solo una tabla a la vez.")
+    elif tabla_2024:
+        acumulado = 0
+        tabla = []
+        for i, (dist, att) in enumerate(sorted(eventos_patron.items()), start=1):
+            acumulado += att
+            total = atenuacion_por_km * dist + acumulado
+            tabla.append({
+                "Nro Evento": i,
+                "Distancia (km)": dist,
+                "Pérdida (dB)": att,
+                "Atenuación acumulada (dB)": round(total, 2)
+            })
+        tabla.append({
+            "Nro Evento": "—",
+            "Distancia (km)": distancia,
+            "Pérdida (dB)": 0.0,
+            "Atenuación acumulada (dB)": at_total_2024
+        })
+        df_tabla = pd.DataFrame(tabla)
+        st.dataframe(df_tabla.style.format({
+            "Distancia (km)": "{:.2f}",
+            "Pérdida (dB)": "{:.2f}",
+            "Atenuación acumulada (dB)": "{:.2f}"
+        }), use_container_width=True)
+
+    elif tabla_2025:
+        acumulado = 0
+        tabla = []
+        for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
+            acumulado += att
+            total = atenuacion_por_km * dist + acumulado
+            tabla.append({
+                "Nro Evento": i,
+                "Distancia (km)": dist,
+                "Pérdida (dB)": att,
+                "Atenuación acumulada (dB)": round(total, 2)
+            })
+        tabla.append({
+            "Nro Evento": "—",
+            "Distancia (km)": distancia,
+            "Pérdida (dB)": 0.0,
+            "Atenuación acumulada (dB)": at_total_2025
+        })
+        df_tabla = pd.DataFrame(tabla)
+        st.dataframe(df_tabla.style.format({
+            "Distancia (km)": "{:.2f}",
+            "Pérdida (dB)": "{:.2f}",
+            "Atenuación acumulada (dB)": "{:.2f}"
+        }), use_container_width=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
-
-# Checkbox para seleccionar tabla
-st.subheader("📋 Mostrar tabla de eventos")
-col1, col2 = st.columns(2)
-with col1:
-    tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
-with col2:
-    tabla_2025 = st.checkbox("Ver eventos 2025", value=False)
-
-if tabla_2024 and tabla_2025:
-    st.warning("Selecciona solo una tabla a la vez.")
-elif tabla_2024:
-    acumulado = 0
-    tabla = []
-    for i, (dist, att) in enumerate(sorted(eventos_patron.items()), start=1):
-        acumulado += att
-        total = atenuacion_por_km * dist + acumulado
-        tabla.append({
-            "Nro Evento": i,
-            "Distancia (km)": dist,
-            "Pérdida (dB)": att,
-            "Atenuación acumulada (dB)": round(total, 2)
-        })
-    tabla.append({
-        "Nro Evento": "—",
-        "Distancia (km)": distancia,
-        "Pérdida (dB)": 0.0,
-        "Atenuación acumulada (dB)": at_total_2024
-    })
-    df_tabla = pd.DataFrame(tabla)
-    st.dataframe(df_tabla.style.format({
-        "Distancia (km)": "{:.2f}",
-        "Pérdida (dB)": "{:.2f}",
-        "Atenuación acumulada (dB)": "{:.2f}"
-    }), use_container_width=True)
-
-elif tabla_2025:
-    acumulado = 0
-    tabla = []
-    for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
-        acumulado += att
-        total = atenuacion_por_km * dist + acumulado
-        tabla.append({
-            "Nro Evento": i,
-            "Distancia (km)": dist,
-            "Pérdida (dB)": att,
-            "Atenuación acumulada (dB)": round(total, 2)
-        })
-    tabla.append({
-        "Nro Evento": "—",
-        "Distancia (km)": distancia,
-        "Pérdida (dB)": 0.0,
-        "Atenuación acumulada (dB)": at_total_2025
-    })
-    df_tabla = pd.DataFrame(tabla)
-    st.dataframe(df_tabla.style.format({
-        "Distancia (km)": "{:.2f}",
-        "Pérdida (dB)": "{:.2f}",
-        "Atenuación acumulada (dB)": "{:.2f}"
-    }), use_container_width=True)
