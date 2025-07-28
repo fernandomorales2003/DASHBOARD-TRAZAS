@@ -86,7 +86,7 @@ with col3:
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# CSS para el recuadro que envuelve el container
+# CSS para el recuadro azul
 st.markdown(
     """
     <style>
@@ -101,40 +101,45 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Container para el subtítulo y gráfico
+# Container general para el bloque de curvas OTDR comparativas
 with st.container():
     st.markdown('<div class="custom-container">', unsafe_allow_html=True)
     st.subheader("📈 Curvas OTDR Comparativas")
-    
-    fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')  # 70% tamaño (12*0.7, 6*0.7)
-    ax.patch.set_alpha(0)
 
-    x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
-    x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
+    col1, col2 = st.columns([1, 1])  # 50% y 50%
+    with col1:
+        fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')
+        ax.patch.set_alpha(0)
 
-    ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
-    ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
+        x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+        x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
 
-    for punto in eventos_extra.keys():
-        y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
-        ax.plot(punto, y_val, 'ro', label='_nolegend_')
+        ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
+        ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
 
-    ax.set_xlabel("Distancia (km)", color="white")
-    ax.set_ylabel("Potencia (dB)", color="white")
-    # Título eliminado como pediste anteriormente
-    
-    ax.grid(True, linewidth=0.5, alpha=0.5)
-    ax.tick_params(colors='white')
+        for punto in eventos_extra.keys():
+            y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
+            ax.plot(punto, y_val, 'ro', label='_nolegend_')
 
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#0089f9")
-        spine.set_linewidth(2)
+        ax.set_xlabel("Distancia (km)", color="white")
+        ax.set_ylabel("Potencia (dB)", color="white")
 
-    legend = ax.legend(frameon=False)  # sin fondo
-    for text in legend.get_texts():
-        text.set_color("white")
-    
-    st.pyplot(fig)
+        ax.grid(True, linewidth=0.5, alpha=0.5)
+        ax.tick_params(colors='white')
+
+        for spine in ax.spines.values():
+            spine.set_edgecolor("#0089f9")
+            spine.set_linewidth(2)
+
+        legend = ax.legend(frameon=False)
+        for text in legend.get_texts():
+            text.set_color("white")
+
+        st.pyplot(fig)
+
+    with col2:
+        st.write("")  # Columna vacía para ocupar espacio
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Checkbox para seleccionar tabla
