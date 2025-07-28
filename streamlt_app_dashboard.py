@@ -4,38 +4,9 @@ import numpy as np
 import pandas as pd
 import random
 
-# Tema configurado directamente en el script, para que coincida con lo que pediste
-# (esto solo es para mostrar en este código, la forma oficial es configurarlo en el archivo .streamlit/config.toml o app config)
-st.markdown(
-    """
-    <style>
-    :root {
-        --primary-color: #2be2ff;
-        --background-color: #001146;
-        --secondary-background-color: #ffa90c;
-        --text-color: #ffffff;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 st.set_page_config(
     layout="wide",
     page_title="Comparador Curvas OTDR"
-)
-
-# Agregar script para ocultar el contenedor no deseado (esto es un hack y puede romper si cambia la clase)
-st.markdown(
-    """
-    <script>
-    window.onload = function() {
-        let el = document.querySelector('.stElementContainer.element-container.st-emotion-cache-v3w3zg.e1msl4mp0');
-        if(el) { el.style.display = 'none'; }
-    }
-    </script>
-    """,
-    unsafe_allow_html=True,
 )
 
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
@@ -115,55 +86,28 @@ with col3:
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# CSS para el recuadro que envuelve el container
-st.markdown(
-    """
-    <style>
-    .custom-container {
-        border: 3px solid #0089f9;
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 20px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Subtítulo y gráfico sin estilos extra
+st.subheader("📈 Curvas OTDR Comparativas")
 
-# Container para el subtítulo y gráfico
-with st.container():
-    st.markdown('<div class="custom-container">', unsafe_allow_html=True)
-    st.subheader("📈 Curvas OTDR Comparativas")
-    
-    fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')  # 70% tamaño (12*0.7, 6*0.7)
-    ax.patch.set_alpha(0)
+fig, ax = plt.subplots(figsize=(8.4, 4.2))
 
-    x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
-    x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
+x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
 
-    ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06", color="white")
-    ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06", color="#00cc83")
+ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06")
+ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06")
 
-    for punto in eventos_extra.keys():
-        y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
-        ax.plot(punto, y_val, 'ro', label='_nolegend_')
+for punto in eventos_extra.keys():
+    y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
+    ax.plot(punto, y_val, 'ro')
 
-    ax.set_xlabel("Distancia (km)", color="white")
-    ax.set_ylabel("Potencia (dB)", color="white")
-    
-    ax.grid(True, linewidth=0.5, alpha=0.5)
-    ax.tick_params(colors='white')
+ax.set_xlabel("Distancia (km)")
+ax.set_ylabel("Potencia (dB)")
 
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#0089f9")
-        spine.set_linewidth(2)
+ax.grid(True, linewidth=0.5, alpha=0.5)
+ax.legend()
 
-    legend = ax.legend(frameon=False)  # sin fondo
-    for text in legend.get_texts():
-        text.set_color("white")
-    
-    st.pyplot(fig)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.pyplot(fig)
 
 # Checkbox para seleccionar tabla
 st.subheader("📋 Mostrar tabla de eventos")
@@ -194,11 +138,7 @@ elif tabla_2024:
         "Atenuación acumulada (dB)": at_total_2024
     })
     df_tabla = pd.DataFrame(tabla)
-    st.dataframe(df_tabla.style.format({
-        "Distancia (km)": "{:.2f}",
-        "Pérdida (dB)": "{:.2f}",
-        "Atenuación acumulada (dB)": "{:.2f}"
-    }), use_container_width=True)
+    st.dataframe(df_tabla, use_container_width=True)
 
 elif tabla_2025:
     acumulado = 0
@@ -219,8 +159,5 @@ elif tabla_2025:
         "Atenuación acumulada (dB)": at_total_2025
     })
     df_tabla = pd.DataFrame(tabla)
-    st.dataframe(df_tabla.style.format({
-        "Distancia (km)": "{:.2f}",
-        "Pérdida (dB)": "{:.2f}",
-        "Atenuación acumulada (dB)": "{:.2f}"
-    }), use_container_width=True)
+    st.dataframe(df_tabla, use_container_width=True)
+
