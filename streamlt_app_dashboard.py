@@ -58,8 +58,22 @@ with col1:
     )
 
 evento_max = max(eventos_2025.items(), key=lambda x: x[1])
+# Buscar el valor máximo exacto
+valor_max = max(eventos_2025.values())
+
+# Obtener la primera ocurrencia con ese valor (como aparece en la tabla)
+for dist, val in sorted(eventos_2025.items()):
+    if val == valor_max:
+        evento_max_dist = dist
+        evento_max_val = val
+        break
+
 with col2:
-    st.metric(label="🚨 Mayor Evento", value=f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]}")
+    st.metric(
+        label="🚨 Mayor Evento",
+        value=f"{evento_max_val:.2f} dB",
+        help=f"Ocurre en el km {evento_max_dist:.2f}"
+    )
 
 with col3:
     eventos_adicionales = len(eventos_2025) - len(eventos_patron)
