@@ -83,11 +83,11 @@ with col3:
         value=f"{eventos_adicionales}"
     )
 
-# Mostrar Atenuaciones fuera del contenedor azul
+# Mostrar Atenuaciones fuera del recuadro
 st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
 st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-# CSS para el recuadro azul
+# Solo abrimos el div para el recuadro azul aquí, antes de Curvas OTDR Comparativas
 st.markdown(
     """
     <style>
@@ -102,10 +102,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Abrimos el div para el contenedor estilizado justo antes del título y todo lo que queremos que tenga el borde
 st.markdown('<div class="custom-container">', unsafe_allow_html=True)
 
-# Título y contenido dentro del contenedor azul
 st.subheader("📈 Curvas OTDR Comparativas")
 
 col1, col2 = st.columns([1, 1])  # 50% y 50%
@@ -142,7 +140,6 @@ with col1:
 with col2:
     st.write("")  # Columna vacía para ocupar espacio
 
-# Checkboxes para mostrar tablas dentro del mismo contenedor azul
 col3, col4 = st.columns(2)
 with col3:
     tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
@@ -201,6 +198,4 @@ elif tabla_2025:
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
 
-# Cerramos el div azul aquí, al final del bloque deseado
 st.markdown('</div>', unsafe_allow_html=True)
-
