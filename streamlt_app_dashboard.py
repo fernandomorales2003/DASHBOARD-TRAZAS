@@ -101,10 +101,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Container general para el bloque de curvas OTDR comparativas + tablas
+# Abrimos el div para el contenedor estilizado
+st.markdown('<div class="custom-container">', unsafe_allow_html=True)
+
 with st.container():
-    st.markdown('<div class="custom-container">', unsafe_allow_html=True)
-    
     st.subheader("📈 Curvas OTDR Comparativas")
 
     col1, col2 = st.columns([1, 1])  # 50% y 50%
@@ -141,7 +141,6 @@ with st.container():
     with col2:
         st.write("")  # Columna vacía para ocupar espacio
 
-    # Aquí agregamos las tablas sin título y dentro del mismo contenedor
     col3, col4 = st.columns(2)
     with col3:
         tabla_2024 = st.checkbox("Ver eventos 2024", value=False)
@@ -200,4 +199,5 @@ with st.container():
             "Atenuación acumulada (dB)": "{:.2f}"
         }), use_container_width=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+# Cerramos el div del contenedor
+st.markdown('</div>', unsafe_allow_html=True)
