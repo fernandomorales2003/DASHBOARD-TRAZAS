@@ -4,7 +4,16 @@ import numpy as np
 import pandas as pd
 import random
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    layout="wide",
+    page_title="Comparador Curvas OTDR",
+    theme={
+        "base": "dark",
+        "textColor": "darkGoldenrod",
+        "linkColor": "darkOrchid",
+    }
+)
+
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
 
 # Parámetros del enlace
@@ -58,10 +67,7 @@ with col1:
     )
 
 evento_max = max(eventos_2025.items(), key=lambda x: x[1])
-# Buscar el valor máximo exacto
 valor_max = max(eventos_2025.values())
-
-# Obtener la primera ocurrencia con ese valor (como aparece en la tabla)
 for dist, val in sorted(eventos_2025.items()):
     if val == valor_max:
         evento_max_dist = dist
@@ -167,4 +173,3 @@ elif tabla_2025:
         "Pérdida (dB)": "{:.2f}",
         "Atenuación acumulada (dB)": "{:.2f}"
     }), use_container_width=True)
-
