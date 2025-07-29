@@ -45,7 +45,7 @@ with col1:
     # Agrupamos todo el contenido en un div centrado
     st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
 
-    st.subheader("📊 ENLACE MZA-NORTE")
+    st.subheader("  📊 ENLACE MZA-NORTE  ")
 
     st.metric(
         label="🔦 Atenuación Total", 
