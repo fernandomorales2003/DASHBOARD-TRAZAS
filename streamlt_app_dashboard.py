@@ -38,12 +38,10 @@ at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values(
 at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
-# Fila principal (dos columnas)
-col1, _, _ = st.columns(3, border=True)
+# FILA 1
+col1, col2 = st.columns(2, gap="large")
 
-# ----------- COL1 ORIGINAL (sin cambios) -----------
 with col1:
-    st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
     st.subheader("📊 ENLACE MZA-NORTE")
     st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
     nivel_vumetro = max(0, min(100, int(porc_aumento)))
@@ -60,10 +58,7 @@ with col1:
             <stop offset="100%" style="stop-color:#00805c;stop-opacity:1" />
           </linearGradient>
         </defs>
-        <path d="M50 150 A100 100 0 0 1 250 150"
-              fill="none"
-              stroke="url(#fuelGradient)"
-              stroke-width="20" />
+        <path d="M50 150 A100 100 0 0 1 250 150" fill="none" stroke="url(#fuelGradient)" stroke-width="20" />
         <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
           <line x1="150" y1="150" x2="150" y2="70" stroke="#59ebf8" stroke-width="2" />
         </g>
@@ -72,16 +67,7 @@ with col1:
     </div>
     """
     st.components.v1.html(html_code, height=200)
-    evento_max = max(eventos_2025.items(), key=lambda x: x[1])
-    st.metric("🚨 Mayor Evento", f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]:.2f}")
-    eventos_adicionales = len(eventos_2025) - len(eventos_patron)
-    st.metric("🛠️ Cantidad de Eventos Mantenimiento", f"{eventos_adicionales}")
-    st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
-    st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# ----------- FILA 1 - COL2 - Tarjetas KPI -----------
-_, col2, _ = st.columns(3, border=True)
 with col2:
     st.subheader("📌 Estado de Enlaces (KPI)")
     enlaces_info = {
@@ -148,31 +134,9 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
 
-# ----------- FILA 2 - COL2 - Gráfico Plotly -----------
-_, col2, _ = st.columns(3, border=True)
-with col2:
-    st.subheader("📊 Atenuación Certificada vs Actual")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Certificada"], name="Certificada", marker_color="#00cc83"))
-    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Actual"], name="Actual", marker_color="#16865e"))
-    fig.update_layout(barmode="group", yaxis_title="Atenuación (dB)", height=400)
-    st.plotly_chart(fig, use_container_width=True)
+# FILA 2
+col1, col2 = st.columns(2, gap="large")
 
-# ----------- FILA 3 - COL2 - Indicadores -----------
-_, col2, _ = st.columns(3, border=True)
-with col2:
-    st.subheader("📈 Indicadores")
-    total_ok = df[df["Estado"] == "OK"].shape[0]
-    total_enlaces = df.shape[0]
-    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]
-    enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
-    c1, c2, c3 = st.columns(3)
-    c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
-    c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
-    c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
-
-# ----------- FILA CURVAS OTDR -----------
-col1, _, _ = st.columns(3, border=True)
 with col1:
     st.subheader("📈 Curvas OTDR Comparativas")
     fig, ax = plt.subplots(figsize=(8.4, 4.2))
@@ -189,8 +153,17 @@ with col1:
     ax.legend()
     st.pyplot(fig)
 
-# ----------- FILA TABLA DE EVENTOS -----------
-col1, _, _ = st.columns(3, border=True)
+with col2:
+    st.subheader("📊 Atenuación Certificada vs Actual")
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Certificada"], name="Certificada", marker_color="#00cc83"))
+    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Actual"], name="Actual", marker_color="#16865e"))
+    fig.update_layout(barmode="group", yaxis_title="Atenuación (dB)", height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+# FILA 3
+col1, col2 = st.columns(2, gap="large")
+
 with col1:
     st.subheader("📋 Mostrar tabla de eventos")
     col_check1, col_check2 = st.columns(2)
@@ -240,3 +213,14 @@ with col1:
             "Atenuación acumulada (dB)": at_total_2025
         })
         st.dataframe(pd.DataFrame(tabla), use_container_width=True)
+
+with col2:
+    st.subheader("📈 Indicadores")
+    total_ok = df[df["Estado"] == "OK"].shape[0]
+    total_enlaces = df.shape[0]
+    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]
+    enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
+    c1, c2, c3 = st.columns(3)
+    c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
+    c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
+    c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
