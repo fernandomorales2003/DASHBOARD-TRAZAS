@@ -6,15 +6,17 @@ import random
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
-# Título centrado
+# Título centrado reemplaza st.title
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
 # Parámetros del enlace
 distancia = 50.0
 atenuacion_por_km = 0.21
 
-# Eventos patrón y aleatorios
+# Generar eventos patrón cada 4 km
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
+
+# Eventos adicionales aleatorios
 puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
 puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
 eventos_extra = {round(p, 2): round(random.uniform(0.15, 0.75), 2) for p in puntos_nuevos}
@@ -40,61 +42,60 @@ porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 # FILA 1
 col1, col2, col3 = st.columns(3, border=True)
 with col1:
-    with st.container():
-        st.markdown("""
-            <style>
-                .fondo-personalizado {
-                    background-color: #0f256e;
-                    padding: 20px;
-                    border-radius: 10px;
-                    color: white;
-                    text-align: center;
-                }
-            </style>
-            <div class="fondo-personalizado">
-        """, unsafe_allow_html=True)
-
-        st.markdown("### 📊 ENLACE MZA-NORTE", unsafe_allow_html=True)
-
-        st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
-
-        nivel_vumetro = max(0, min(100, int(porc_aumento)))
-        html_code = f"""
-        <div style="display: flex; justify-content: center; margin-top: 10px;">
-          <svg width="300" height="160" viewBox="0 0 300 160">
-            <defs>
-              <linearGradient id="fuelGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:#d4f7ec;stop-opacity:1" />
-                <stop offset="20%" style="stop-color:#80e9c5;stop-opacity:1" />
-                <stop offset="40%" style="stop-color:#33d49d;stop-opacity:1" />
-                <stop offset="60%" style="stop-color:#00cc83;stop-opacity:1" />
-                <stop offset="80%" style="stop-color:#009b6e;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#00805c;stop-opacity:1" />
-              </linearGradient>
-            </defs>
-            <path d="M50 150 A100 100 0 0 1 250 150"
-                  fill="none"
-                  stroke="url(#fuelGradient)"
-                  stroke-width="20" />
-            <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
-              <line x1="150" y1="150" x2="150" y2="70" stroke="#59ebf8" stroke-width="2" />
-            </g>
-            <circle cx="150" cy="150" r="4" fill="#000" />
-          </svg>
-        </div>
+    st.markdown(
         """
-        st.components.v1.html(html_code, height=200)
+        <div style='
+            background-color:#0f256e;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        '>
+        """,
+        unsafe_allow_html=True
+    )
 
-        evento_max = max(eventos_2025.items(), key=lambda x: x[1])
-        st.metric("🚨 Mayor Evento", f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]:.2f}")
+    st.markdown("### 📊 ENLACE MZA-NORTE", unsafe_allow_html=True)
 
-        eventos_adicionales = len(eventos_2025) - len(eventos_patron)
-        st.metric("🛠️ Cantidad de Eventos Mantenimiento", f"{eventos_adicionales}")
+    st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
 
-        st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
-        st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+    nivel_vumetro = max(0, min(100, int(porc_aumento)))
+    html_code = f"""
+    <div style="display: flex; justify-content: center; margin-top: 10px;">
+      <svg width="300" height="160" viewBox="0 0 300 160">
+        <defs>
+          <linearGradient id="fuelGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#d4f7ec;stop-opacity:1" />
+            <stop offset="20%" style="stop-color:#80e9c5;stop-opacity:1" />
+            <stop offset="40%" style="stop-color:#33d49d;stop-opacity:1" />
+            <stop offset="60%" style="stop-color:#00cc83;stop-opacity:1" />
+            <stop offset="80%" style="stop-color:#009b6e;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#00805c;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <path d="M50 150 A100 100 0 0 1 250 150"
+              fill="none"
+              stroke="url(#fuelGradient)"
+              stroke-width="20" />
+        <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
+          <line x1="150" y1="150" x2="150" y2="70" stroke="#59ebf8" stroke-width="2" />
+        </g>
+        <circle cx="150" cy="150" r="4" fill="#000" />
+      </svg>
+    </div>
+    """
+    st.components.v1.html(html_code, height=200)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    evento_max = max(eventos_2025.items(), key=lambda x: x[1])
+    st.metric("🚨 Mayor Evento", f"{evento_max[1]:.2f} dB", help=f"Ocurre en el km {evento_max[0]:.2f}")
+
+    eventos_adicionales = len(eventos_2025) - len(eventos_patron)
+    st.metric("🛠️ Cantidad de Eventos Mantenimiento", f"{eventos_adicionales}")
+
+    st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
+    st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # FILA 2
 col1, _, _ = st.columns(3, border=True)
