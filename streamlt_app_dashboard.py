@@ -1,5 +1,3 @@
-Me lo adaptas a container.
-
 import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
@@ -131,4 +129,3 @@ with col1:
             "Atenuación acumulada (dB)": at_total_2025
         })
         st.dataframe(pd.DataFrame(tabla), use_container_width=True)
-
