@@ -46,6 +46,40 @@ with col1:
         label="🔦 Atenuación Total", 
         value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
     )
+    
+    # Calcular nivel para el vúmetro, acotando entre 0 y 100
+    nivel_vumetro = max(0, min(100, int(porc_aumento)))
+
+    # Código HTML del vúmetro, con nivel dinámico
+    html_code = f"""
+    <div style="display: flex; justify-content: center; margin-top: 10px;">
+      <svg width="300" height="160" viewBox="0 0 300 160">
+        <defs>
+          <linearGradient id="fuelGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%"   style="stop-color:#d4f7ec;stop-opacity:1" />
+            <stop offset="20%"  style="stop-color:#80e9c5;stop-opacity:1" />
+            <stop offset="40%"  style="stop-color:#33d49d;stop-opacity:1" />
+            <stop offset="60%"  style="stop-color:#00cc83;stop-opacity:1" />
+            <stop offset="80%"  style="stop-color:#009b6e;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#00805c;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+
+        <path d="M50 150 A100 100 0 0 1 250 150"
+              fill="none"
+              stroke="url(#fuelGradient)"
+              stroke-width="20" />
+
+        <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
+          <line x1="150" y1="150" x2="150" y2="70" stroke="black" stroke-width="2" />
+        </g>
+
+        <circle cx="150" cy="150" r="4" fill="#000" />
+      </svg>
+    </div>
+    """
+    st.components.v1.html(html_code, height=200)
+
     evento_max = max(eventos_2025.items(), key=lambda x: x[1])
     st.metric(
         label="🚨 Mayor Evento",
