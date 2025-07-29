@@ -6,7 +6,8 @@ import random
 
 st.set_page_config(layout="wide", page_title="Comparador Curvas OTDR")
 
-st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
+# Título centrado reemplaza st.title
+st.markdown("<h1 style='text-align:center'>ENLACE MZA-NORTE</h1>", unsafe_allow_html=True)
 
 # Parámetros del enlace
 distancia = 50.0
@@ -41,7 +42,11 @@ porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 # FILA 1
 col1, col2, col3 = st.columns(3, border=True)
 with col1:
+    # Agrupamos todo el contenido en un div centrado
+    st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
+
     st.subheader("📊 ANÁLISIS ENLACE MZA-NORTE")
+
     st.metric(
         label="🔦 Atenuación Total", 
         value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
@@ -50,7 +55,7 @@ with col1:
     # Calcular nivel para el vúmetro, acotando entre 0 y 100
     nivel_vumetro = max(0, min(100, int(porc_aumento)))
 
-    # Código HTML del vúmetro, con nivel dinámico
+    # Código HTML del vúmetro, con nivel dinámico y línea en color #59ebf8
     html_code = f"""
     <div style="display: flex; justify-content: center; margin-top: 10px;">
       <svg width="300" height="160" viewBox="0 0 300 160">
@@ -71,7 +76,7 @@ with col1:
               stroke-width="20" />
 
         <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
-          <line x1="150" y1="150" x2="150" y2="70" stroke="black" stroke-width="2" />
+          <line x1="150" y1="150" x2="150" y2="70" stroke="#59ebf8" stroke-width="2" />
         </g>
 
         <circle cx="150" cy="150" r="4" fill="#000" />
@@ -93,6 +98,8 @@ with col1:
     )
     st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
     st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # FILA 2
 col1, _, _ = st.columns(3, border=True)
