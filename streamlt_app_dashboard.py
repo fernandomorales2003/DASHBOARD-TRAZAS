@@ -2,22 +2,24 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
+# Estilos CSS para la grilla completa
 st.markdown("""
     <style>
     .fila {
         display: flex;
         width: 100%;
-        margin-bottom: 20px;
+        margin: 0;
+        padding: 0;
     }
     .fila1 { height: 30vh; }
     .fila2 { height: 50vh; }
     .fila3 { height: 20vh; }
-    .fila4 { height: auto; }
     .columna {
         flex: 1;
-        padding: 10px;
+        padding: 0;
+        margin: 0;
     }
     .grafico {
         height: 100%;
@@ -25,39 +27,36 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Función para generar gráfico random
 def random_plot():
     fig, ax = plt.subplots()
     x = np.linspace(0, 10, 100)
     y = np.sin(x + np.random.rand())
     ax.plot(x, y)
+    ax.set_xticks([])
+    ax.set_yticks([])
     return fig
 
-# === FILA 1 (30% ALTO) ===
+# === FILA 1 ===
 st.markdown('<div class="fila fila1">', unsafe_allow_html=True)
-cols = st.columns(3)
-for i, col in enumerate(cols):
+cols = st.columns(3, gap="small")
+for col in cols:
     with col:
         st.pyplot(random_plot())
 st.markdown('</div>', unsafe_allow_html=True)
 
-# === FILA 2 (50% ALTO) ===
+# === FILA 2 ===
 st.markdown('<div class="fila fila2">', unsafe_allow_html=True)
-cols = st.columns(3)
-for i, col in enumerate(cols):
+cols = st.columns(3, gap="small")
+for col in cols:
     with col:
         st.pyplot(random_plot())
 st.markdown('</div>', unsafe_allow_html=True)
 
-# === FILA 3 (20% ALTO) ===
+# === FILA 3 ===
 st.markdown('<div class="fila fila3">', unsafe_allow_html=True)
-cols = st.columns(3)
-for i, col in enumerate(cols):
+cols = st.columns(3, gap="small")
+for col in cols:
     with col:
         st.pyplot(random_plot())
 st.markdown('</div>', unsafe_allow_html=True)
-
-# === FILA 4 (100% ancho) ===
-st.markdown("### Fila 4 - Columna única (gráfico grande)")
-st.pyplot(random_plot())
-
-
