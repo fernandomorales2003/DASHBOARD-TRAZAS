@@ -39,7 +39,7 @@ at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values())
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
 # Fila principal (dos columnas)
-col1, col2, col3 = st.columns(3, border=True)
+col1, _, _ = st.columns(3, border=True)
 
 # ----------- COL1 ORIGINAL (sin cambios) -----------
 with col1:
@@ -80,9 +80,9 @@ with col1:
     st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ----------- COL2 NUEVO CONTENIDO -----------
+# ----------- FILA 1 - COL2 - Tarjetas KPI -----------
+_, col2, _ = st.columns(3, border=True)
 with col2:
-    # Fila 1 - Tarjetas de estado
     st.subheader("📌 Estado de Enlaces (KPI)")
     enlaces_info = {
         "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
@@ -148,7 +148,9 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
 
-    # Fila 2 - Gráfico comparativo
+# ----------- FILA 2 - COL2 - Gráfico Plotly -----------
+_, col2, _ = st.columns(3, border=True)
+with col2:
     st.subheader("📊 Atenuación Certificada vs Actual")
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Certificada"], name="Certificada", marker_color="#00cc83"))
@@ -156,7 +158,9 @@ with col2:
     fig.update_layout(barmode="group", yaxis_title="Atenuación (dB)", height=400)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Fila 3 - Indicadores
+# ----------- FILA 3 - COL2 - Indicadores -----------
+_, col2, _ = st.columns(3, border=True)
+with col2:
     st.subheader("📈 Indicadores")
     total_ok = df[df["Estado"] == "OK"].shape[0]
     total_enlaces = df.shape[0]
