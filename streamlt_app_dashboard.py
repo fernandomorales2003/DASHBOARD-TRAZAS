@@ -3,7 +3,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 st.set_page_config(layout="wide")
-st.title("📊 Grilla de 4 Filas x 3 Columnas con Gráficos")
+
+st.markdown("""
+    <style>
+    .fila {
+        display: flex;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .fila1 { height: 30vh; }
+    .fila2 { height: 50vh; }
+    .fila3 { height: 20vh; }
+    .fila4 { height: auto; }
+    .columna {
+        flex: 1;
+        padding: 10px;
+    }
+    .grafico {
+        height: 100%;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 def random_plot():
     fig, ax = plt.subplots()
@@ -12,29 +32,32 @@ def random_plot():
     ax.plot(x, y)
     return fig
 
-# === FILA 1 === (30% - 50% - 20%)
-cols1 = st.columns([0.3, 0.5, 0.2])
-for i, col in enumerate(cols1):
-    with col.container():
-        st.subheader(f"Fila 1 - Columna {i+1}")
+# === FILA 1 (30% ALTO) ===
+st.markdown('<div class="fila fila1">', unsafe_allow_html=True)
+cols = st.columns(3)
+for i, col in enumerate(cols):
+    with col:
         st.pyplot(random_plot())
+st.markdown('</div>', unsafe_allow_html=True)
 
-# === FILA 2 === (30% - 50% - 20%)
-cols2 = st.columns([0.3, 0.5, 0.2])
-for i, col in enumerate(cols2):
-    with col.container():
-        st.subheader(f"Fila 2 - Columna {i+1}")
+# === FILA 2 (50% ALTO) ===
+st.markdown('<div class="fila fila2">', unsafe_allow_html=True)
+cols = st.columns(3)
+for i, col in enumerate(cols):
+    with col:
         st.pyplot(random_plot())
+st.markdown('</div>', unsafe_allow_html=True)
 
-# === FILA 3 === (30% - 50% - 20%)
-cols3 = st.columns([0.3, 0.5, 0.2])
-for i, col in enumerate(cols3):
-    with col.container():
-        st.subheader(f"Fila 3 - Columna {i+1}")
+# === FILA 3 (20% ALTO) ===
+st.markdown('<div class="fila fila3">', unsafe_allow_html=True)
+cols = st.columns(3)
+for i, col in enumerate(cols):
+    with col:
         st.pyplot(random_plot())
+st.markdown('</div>', unsafe_allow_html=True)
 
-# === FILA 4 (OCUPA TODO EL ANCHO) ===
-with st.container():
-    st.subheader("Fila 4 - Columna Única (100% ancho)")
-    st.pyplot(random_plot())
+# === FILA 4 (100% ancho) ===
+st.markdown("### Fila 4 - Columna única (gráfico grande)")
+st.pyplot(random_plot())
+
 
