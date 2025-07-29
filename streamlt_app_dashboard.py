@@ -6,35 +6,6 @@ import random
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
-# CSS para centrar texto en st.metric (solo en la primer columna)
-st.markdown(
-    """
-    <style>
-    /* Centrar texto label y value de métricas */
-    .centered-metrics .stMetric label {
-        display: block;
-        text-align: center;
-        font-size: 1rem;
-    }
-    .centered-metrics .stMetric div[data-testid="stMetricValue"] {
-        text-align: center;
-        font-weight: 700;
-        font-size: 1.3rem;
-    }
-    /* Centrar los markdown en la misma clase */
-    .centered-metrics div, 
-    .centered-metrics span {
-        text-align: center;
-    }
-    /* Centrar subheader */
-    .centered-metrics h3 {
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
-
 # Título centrado reemplaza st.title
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
@@ -71,20 +42,24 @@ porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 # FILA 1
 col1, col2, col3 = st.columns(3, border=True)
 with col1:
-    # Clase css para centrar todo
-    st.markdown("<div class='centered-metrics'>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
 
     st.subheader("📊 ENLACE MZA-NORTE")
 
-    st.metric(
-        label="🔦 Atenuación Total", 
-        value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
-    )
-    
+    # Métrica Atenuación Total simulada centrada
+    st.markdown(f"""
+    <div style='font-weight:bold; font-size:1.3rem; margin-top:10px;'>
+      🔦 Atenuación Total
+    </div>
+    <div style='font-size:2rem; color:#59ebf8; margin-bottom:15px;'>
+      {at_total_2025:.2f} dB (+{porc_aumento:.1f}%)
+    </div>
+    """, unsafe_allow_html=True)
+
     # Calcular nivel para el vúmetro, acotando entre 0 y 100
     nivel_vumetro = max(0, min(100, int(porc_aumento)))
 
-    # Código HTML del vúmetro, con nivel dinámico y línea en color #59ebf8
+    # Código HTML del vúmetro con línea en color #59ebf8
     html_code = f"""
     <div style="display: flex; justify-content: center; margin-top: 10px;">
       <svg width="300" height="160" viewBox="0 0 300 160">
@@ -114,19 +89,38 @@ with col1:
     """
     st.components.v1.html(html_code, height=200)
 
+    # Mayor evento centrado con markdown
     evento_max = max(eventos_2025.items(), key=lambda x: x[1])
-    st.metric(
-        label="🚨 Mayor Evento",
-        value=f"{evento_max[1]:.2f} dB",
-        help=f"Ocurre en el km {evento_max[0]:.2f}"
-    )
+    st.markdown(f"""
+    <div style='font-weight:bold; font-size:1.1rem; margin-top:15px;'>
+      🚨 Mayor Evento
+    </div>
+    <div style='font-size:1.8rem; margin-bottom:15px;'>
+      {evento_max[1]:.2f} dB
+    </div>
+    <div style='font-size:0.9rem; color:gray; margin-bottom:25px;'>
+      Ocurre en el km {evento_max[0]:.2f}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Cantidad eventos mantenimiento centrado
     eventos_adicionales = len(eventos_2025) - len(eventos_patron)
-    st.metric(
-        label="🛠️ Cantidad de Eventos Mantenimiento",
-        value=f"{eventos_adicionales}"
-    )
-    st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
-    st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
+    st.markdown(f"""
+    <div style='font-weight:bold; font-size:1.1rem; margin-top:10px;'>
+      🛠️ Cantidad de Eventos Mantenimiento
+    </div>
+    <div style='font-size:1.8rem; margin-bottom:20px;'>
+      {eventos_adicionales}
+    </div>
+    """ , unsafe_allow_html=True)
+
+    # Atenuación total 2024 y 2025
+    st.markdown(f"""
+    <div style='font-weight:bold; margin-top:10px;'>
+      Atenuación Total 2024: <span style='font-weight:normal'>{at_total_2024:.2f} dB</span><br>
+      Atenuación Total 2025: <span style='font-weight:normal'>{at_total_2025:.2f} dB</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -183,5 +177,19 @@ with col1:
     elif tabla_2025:
         acumulado = 0
         tabla = []
-
-
+        for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
+            acumulado += att
+            total = atenuacion_por_km * dist + acumulado
+            tabla.append({
+                "Nro Evento": i,
+                "Distancia (km)": dist,
+                "Pérdida (dB)": att,
+                "Atenuación acumulada (dB)": round(total, 2)
+            })
+        tabla.append({
+            "Nro Evento": "—",
+            "Distancia (km)": distancia,
+            "Pérdida (dB)": 0.0,
+            "Atenuación acumulada (dB)": at_total_2025
+        })
+        st.dataframe(pd.DataFrame(tabla), use_container_width=True)
