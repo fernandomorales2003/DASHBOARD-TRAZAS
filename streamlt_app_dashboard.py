@@ -1,5 +1,8 @@
 import streamlit as st
 
+# Forzar modo wide
+st.set_page_config(layout="wide")
+
 st.title("3 filas x 3 columnas con border=True")
 
 # FILA 1
