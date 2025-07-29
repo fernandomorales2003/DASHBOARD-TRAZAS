@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import random
 
-st.set_page_config(layout="wide", page_title="Comparador Curvas OTDR")
+st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
 # Título centrado reemplaza st.title
 st.markdown("<h1 style='text-align:center'>ENLACE MZA-NORTE</h1>", unsafe_allow_html=True)
