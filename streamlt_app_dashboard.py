@@ -7,7 +7,7 @@ import random
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
 # Título centrado reemplaza st.title
-st.markdown("<h1 style='text-align:center'>ENLACE MZA-NORTE</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
 # Parámetros del enlace
 distancia = 50.0
@@ -45,7 +45,7 @@ with col1:
     # Agrupamos todo el contenido en un div centrado
     st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
 
-    st.subheader("📊 ANÁLISIS ENLACE MZA-NORTE")
+    st.subheader("📊 ENLACE MZA-NORTE")
 
     st.metric(
         label="🔦 Atenuación Total", 
