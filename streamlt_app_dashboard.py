@@ -6,6 +6,35 @@ import random
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
+# CSS para centrar texto en st.metric (solo en la primer columna)
+st.markdown(
+    """
+    <style>
+    /* Centrar texto label y value de métricas */
+    .centered-metrics .stMetric label {
+        display: block;
+        text-align: center;
+        font-size: 1rem;
+    }
+    .centered-metrics .stMetric div[data-testid="stMetricValue"] {
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.3rem;
+    }
+    /* Centrar los markdown en la misma clase */
+    .centered-metrics div, 
+    .centered-metrics span {
+        text-align: center;
+    }
+    /* Centrar subheader */
+    .centered-metrics h3 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
+
 # Título centrado reemplaza st.title
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
@@ -42,8 +71,8 @@ porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 # FILA 1
 col1, col2, col3 = st.columns(3, border=True)
 with col1:
-    # Agrupamos todo el contenido en un div centrado
-    st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
+    # Clase css para centrar todo
+    st.markdown("<div class='centered-metrics'>", unsafe_allow_html=True)
 
     st.subheader("📊 ENLACE MZA-NORTE")
 
@@ -154,19 +183,5 @@ with col1:
     elif tabla_2025:
         acumulado = 0
         tabla = []
-        for i, (dist, att) in enumerate(sorted(eventos_2025.items()), start=1):
-            acumulado += att
-            total = atenuacion_por_km * dist + acumulado
-            tabla.append({
-                "Nro Evento": i,
-                "Distancia (km)": dist,
-                "Pérdida (dB)": att,
-                "Atenuación acumulada (dB)": round(total, 2)
-            })
-        tabla.append({
-            "Nro Evento": "—",
-            "Distancia (km)": distancia,
-            "Pérdida (dB)": 0.0,
-            "Atenuación acumulada (dB)": at_total_2025
-        })
-        st.dataframe(pd.DataFrame(tabla), use_container_width=True)
+
+
