@@ -4,30 +4,44 @@ import numpy as np
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Estilos CSS para la grilla completa
+# Estilo CSS para grilla sin scroll
 st.markdown("""
     <style>
+    html, body, [data-testid="stApp"] {
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
     .fila {
         display: flex;
         width: 100%;
         margin: 0;
         padding: 0;
     }
+
     .fila1 { height: 30vh; }
     .fila2 { height: 50vh; }
     .fila3 { height: 20vh; }
+
     .columna {
         flex: 1;
         padding: 0;
         margin: 0;
     }
-    .grafico {
-        height: 100%;
+
+    .block-container {
+        padding: 0 !important;
+    }
+
+    [data-testid="stSidebar"] {
+        display: none;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Función para generar gráfico random
+# Función para gráfico random
 def random_plot():
     fig, ax = plt.subplots()
     x = np.linspace(0, 10, 100)
