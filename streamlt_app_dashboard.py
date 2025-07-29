@@ -7,20 +7,17 @@ import random
 st.set_page_config(layout="wide", page_title="Comparador Curvas OTDR")
 st.title("📡 Comparador de Curvas OTDR - Enlace MZA-NORTE")
 
-# Estilos personalizados
+# Estilos visuales generales
 st.markdown("""
 <style>
 .container-box {
     border: 2px solid #204ecf;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 1.5em;
     margin-bottom: 2em;
-    background-color: #f8f9fa;
+    background-color: #f9f9f9;
 }
 .transparent-bg {
-    background-color: rgba(0,0,0,0) !important;
-}
-.legend-custom .legend {
     background-color: rgba(0,0,0,0) !important;
 }
 </style>
@@ -30,14 +27,14 @@ st.markdown("""
 distancia = 50.0
 atenuacion_por_km = 0.21
 
-# Eventos
+# Generar eventos
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
 puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
 puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
 eventos_extra = {round(p, 2): round(random.uniform(0.15, 0.75), 2) for p in puntos_nuevos}
 eventos_2025 = dict(sorted({**eventos_patron, **eventos_extra}.items()))
 
-# Curva
+# Función curva
 def generar_curva(at_km, eventos):
     x_ini = np.array([0.0, 0.005, 0.075])
     y_ini = np.array([0.0, 0.8, -0.25])
@@ -51,11 +48,11 @@ def generar_curva(at_km, eventos):
     y_fin = np.array([y_fin_base, y_fin_base + 0.8, y_fin_base - 0.5])
     return np.concatenate([x_ini, x_fibra, x_fin]), np.concatenate([y_ini, y_fibra, y_fin])
 
-# Atenuación total
+# Atenuaciones
 at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values()), 2)
 at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 
-# === CONTENEDOR 1: INDICADORES ===
+# ==================== FILA 1 - INDICADORES ====================
 with st.container():
     st.markdown('<div class="container-box">', unsafe_allow_html=True)
     st.subheader("📊 INDICADORES ENLACE MZA-NORTE")
@@ -69,14 +66,15 @@ with st.container():
     evento_max = max(eventos_2025.items(), key=lambda x: x[1])
     evento_max_dist = evento_max[0]
     evento_max_val = evento_max[1]
-    
+
     with col2:
         st.metric("🚨 Mayor Evento", f"{evento_max_val:.2f} dB", help=f"Ocurre en el km {evento_max_dist:.2f}")
-    
+
     eventos_adicionales = len(eventos_2025) - len(eventos_patron)
     with col3:
         st.metric("🛠️ Eventos Mantenimiento", f"{eventos_adicionales}")
 
+    # Segunda fila: comparación de atenuaciones
     st.markdown("---")
     col_a, col_b = st.columns(2)
     with col_a:
@@ -85,12 +83,13 @@ with st.container():
         st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# === CONTENEDOR 2: CURVAS OTDR ===
+# ==================== FILA 2 - CURVAS OTDR ====================
 with st.container():
     st.markdown('<div class="container-box">', unsafe_allow_html=True)
     st.subheader("📈 CURVAS OTDR COMPARATIVAS")
 
     fig, ax = plt.subplots(figsize=(8.4, 4.2), facecolor='none')
+
     x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
     x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
 
@@ -109,7 +108,15 @@ with st.container():
     st.pyplot(fig)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# === TABLAS DE EVENTOS ===
+# ==================== FILA 3 - OPEX ====================
+with st.container():
+    st.markdown('<div class="container-box">', unsafe_allow_html=True)
+    st.subheader("💰 COSTO OPERATIVO (OPEX)")
+    costo_opex = random.randint(300, 1000)
+    st.markdown(f"### Estimación de OPEX anual: **${costo_opex} USD**")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ==================== TABLAS OPCIONALES ====================
 st.subheader("📋 Mostrar tabla de eventos")
 col1, col2 = st.columns(2)
 with col1:
@@ -157,5 +164,3 @@ elif tabla_2025:
         "Atenuación acumulada (dB)": at_total_2025
     })
     st.dataframe(pd.DataFrame(tabla), use_container_width=True)
-
-
