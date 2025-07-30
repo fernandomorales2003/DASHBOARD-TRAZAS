@@ -3,19 +3,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
-import plotly.graph_objects as go
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
 
-# Título centrado
+# Título centrado reemplaza st.title
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
 # Parámetros del enlace
 distancia = 50.0
 atenuacion_por_km = 0.21
 
-# Eventos patrón
+# Generar eventos patrón cada 4 km
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
+
+# Eventos adicionales aleatorios
 puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
 puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
 eventos_extra = {round(p, 2): round(random.uniform(0.15, 0.75), 2) for p in puntos_nuevos}
@@ -39,12 +40,22 @@ at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values())
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
 # FILA 1
-col1, col2 = st.columns(2, gap="large")
-
+col1, col2, col3 = st.columns(3, border=True)
 with col1:
+    # Agrupamos todo el contenido en un div centrado
+    st.markdown("<div style='text-align:center'>", unsafe_allow_html=True)
+
     st.subheader("📊 ENLACE MZA-NORTE")
-    st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
+
+    st.metric(
+        label="🔦 Atenuación Total", 
+        value=f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)"
+    )
+    
+    # Calcular nivel para el vúmetro, acotando entre 0 y 100
     nivel_vumetro = max(0, min(100, int(porc_aumento)))
+
+    # Código HTML del vúmetro, con nivel dinámico y línea en color #59ebf8
     html_code = f"""
     <div style="display: flex; justify-content: center; margin-top: 10px;">
       <svg width="300" height="160" viewBox="0 0 300 160">
@@ -58,85 +69,40 @@ with col1:
             <stop offset="100%" style="stop-color:#00805c;stop-opacity:1" />
           </linearGradient>
         </defs>
-        <path d="M50 150 A100 100 0 0 1 250 150" fill="none" stroke="url(#fuelGradient)" stroke-width="20" />
+
+        <path d="M50 150 A100 100 0 0 1 250 150"
+              fill="none"
+              stroke="url(#fuelGradient)"
+              stroke-width="20" />
+
         <g transform="rotate({-90 + int(nivel_vumetro * 180 / 100)},150,150)">
           <line x1="150" y1="150" x2="150" y2="70" stroke="#59ebf8" stroke-width="2" />
         </g>
+
         <circle cx="150" cy="150" r="4" fill="#000" />
       </svg>
     </div>
     """
     st.components.v1.html(html_code, height=200)
 
-with col2:
-    st.subheader("📌 Estado de Enlaces (KPI)")
-    enlaces_info = {
-        "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
-        "MZA-FTTH-02": {"Tx": 5, "Rx_cert": -20},
-        "MZA-CCTV-01": {"Tx": 0, "Rx_cert": -14},
-        "MZA-WS-01": {"Tx": 3, "Rx_cert": -14},
-        "MZA-WS-02": {"Tx": 3, "Rx_cert": -12},
-        "MZA-WS-03": {"Tx": 3, "Rx_cert": -8},
-    }
+    evento_max = max(eventos_2025.items(), key=lambda x: x[1])
+    st.metric(
+        label="🚨 Mayor Evento",
+        value=f"{evento_max[1]:.2f} dB",
+        help=f"Ocurre en el km {evento_max[0]:.2f}"
+    )
+    eventos_adicionales = len(eventos_2025) - len(eventos_patron)
+    st.metric(
+        label="🛠️ Cantidad de Eventos Mantenimiento",
+        value=f"{eventos_adicionales}"
+    )
+    st.markdown(f"**Atenuación Total 2024:** {at_total_2024:.2f} dB")
+    st.markdown(f"**Atenuación Total 2025:** {at_total_2025:.2f} dB")
 
-    def calcular_atenuaciones(tx, rx_cert):
-        at_cert = tx - rx_cert
-        variacion = random.uniform(-3, 3)
-        at_actual = at_cert + variacion
-        return round(at_cert, 2), round(at_actual, 2)
-
-    def evaluar_estado(at_cert, at_actual):
-        diferencia = at_actual - at_cert
-        if diferencia <= 0.5:
-            return "OK"
-        elif diferencia <= 2:
-            return "ADVERTENCIA"
-        else:
-            return "CRÍTICO"
-
-    def estado_icono_color(estado):
-        if estado == "OK":
-            return "✅", "#2ecc71"
-        elif estado == "ADVERTENCIA":
-            return "⚠️", "#f1c40f"
-        else:
-            return "❌", "#e74c3c"
-
-    datos = []
-    for enlace, valores in enlaces_info.items():
-        tx = valores["Tx"]
-        rx = valores["Rx_cert"]
-        at_cert, at_actual = calcular_atenuaciones(tx, rx)
-        estado = evaluar_estado(at_cert, at_actual)
-        datos.append({
-            "Enlace": enlace,
-            "Tx": tx,
-            "Rx_cert": rx,
-            "Atenuación Certificada": at_cert,
-            "Atenuación Actual": at_actual,
-            "Estado": estado
-        })
-
-    df = pd.DataFrame(datos)
-    cols_kpi = st.columns(3)
-    for i, row in enumerate(df.itertuples()):
-        icono, color = estado_icono_color(row.Estado)
-        with cols_kpi[i % 3]:
-            st.markdown(f"""
-                <div style="background-color:{color};
-                            padding:20px;
-                            border-radius:10px;
-                            text-align:center;
-                            color:white;
-                            margin-bottom:20px;">
-                    <h4>{row.Enlace}</h4>
-                    <p style="font-size:24px;">{icono} <strong>{row.Estado}</strong></p>
-                </div>
-            """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # FILA 2
-col1, col2 = st.columns(2, gap="large")
-
+col1, _, _ = st.columns(3, border=True)
 with col1:
     st.subheader("📈 Curvas OTDR Comparativas")
     fig, ax = plt.subplots(figsize=(8.4, 4.2))
@@ -153,17 +119,8 @@ with col1:
     ax.legend()
     st.pyplot(fig)
 
-with col2:
-    st.subheader("📊 Atenuación Certificada vs Actual")
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Certificada"], name="Certificada", marker_color="#00cc83"))
-    fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Actual"], name="Actual", marker_color="#16865e"))
-    fig.update_layout(barmode="group", yaxis_title="Atenuación (dB)", height=400)
-    st.plotly_chart(fig, use_container_width=True)
-
 # FILA 3
-col1, col2 = st.columns(2, gap="large")
-
+col1, _, _ = st.columns(3, border=True)
 with col1:
     st.subheader("📋 Mostrar tabla de eventos")
     col_check1, col_check2 = st.columns(2)
@@ -213,14 +170,4 @@ with col1:
             "Atenuación acumulada (dB)": at_total_2025
         })
         st.dataframe(pd.DataFrame(tabla), use_container_width=True)
-
-with col2:
-    st.subheader("📈 Indicadores")
-    total_ok = df[df["Estado"] == "OK"].shape[0]
-    total_enlaces = df.shape[0]
-    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]
-    enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
-    c1, c2, c3 = st.columns(3)
-    c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
-    c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
-    c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
+        
