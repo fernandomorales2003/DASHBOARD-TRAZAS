@@ -6,14 +6,13 @@ import random
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
-
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
-# Parámetros del enlace
+# Parámetros
 distancia = 50.0
 atenuacion_por_km = 0.21
 
-# Eventos patrón
+# Eventos simulados
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
 puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
 puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
@@ -37,12 +36,60 @@ at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values(
 at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
-# --------------------------------------------
-# FILA 1
-# --------------------------------------------
+# Simulación de enlaces
+enlaces_info = {
+    "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
+    "MZA-FTTH-02": {"Tx": 5, "Rx_cert": -20},
+    "MZA-CCTV-01": {"Tx": 0, "Rx_cert": -14},
+    "MZA-WS-01": {"Tx": 3, "Rx_cert": -14},
+    "MZA-WS-02": {"Tx": 3, "Rx_cert": -12},
+    "MZA-WS-03": {"Tx": 3, "Rx_cert": -8},
+}
+
+def calcular_atenuaciones(tx, rx_cert):
+    at_cert = tx - rx_cert
+    variacion = random.uniform(-3, 3)
+    at_actual = at_cert + variacion
+    return round(at_cert, 2), round(at_actual, 2)
+
+def evaluar_estado(at_cert, at_actual):
+    diferencia = at_actual - at_cert
+    if diferencia <= 0.5:
+        return "OK"
+    elif diferencia <= 2:
+        return "ADVERTENCIA"
+    else:
+        return "CRÍTICO"
+
+def estado_icono_color(estado):
+    if estado == "OK":
+        return "✅", "#2ecc71"
+    elif estado == "ADVERTENCIA":
+        return "⚠️", "#f1c40f"
+    else:
+        return "❌", "#e74c3c"
+
+datos = []
+for enlace, valores in enlaces_info.items():
+    tx = valores["Tx"]
+    rx = valores["Rx_cert"]
+    at_cert, at_actual = calcular_atenuaciones(tx, rx)
+    estado = evaluar_estado(at_cert, at_actual)
+    datos.append({
+        "Enlace": enlace,
+        "Tx": tx,
+        "Rx_cert": rx,
+        "Atenuación Certificada": at_cert,
+        "Atenuación Actual": at_actual,
+        "Estado": estado,
+        "Diferencia": at_actual - at_cert
+    })
+
+df = pd.DataFrame(datos)
+
+# ================= FILA 1 ===================
 col1, col2, col3 = st.columns(3, gap="large")
 
-# --- Columna 1
 with col1:
     st.subheader("📊 ENLACE MZA-NORTE")
     st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
@@ -70,58 +117,8 @@ with col1:
     """
     st.components.v1.html(html_code, height=200)
 
-# --- Columna 2
 with col2:
     st.subheader("📌 Estado de Enlaces (KPI)")
-    enlaces_info = {
-        "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
-        "MZA-FTTH-02": {"Tx": 5, "Rx_cert": -20},
-        "MZA-CCTV-01": {"Tx": 0, "Rx_cert": -14},
-        "MZA-WS-01": {"Tx": 3, "Rx_cert": -14},
-        "MZA-WS-02": {"Tx": 3, "Rx_cert": -12},
-        "MZA-WS-03": {"Tx": 3, "Rx_cert": -8},
-    }
-
-    def calcular_atenuaciones(tx, rx_cert):
-        at_cert = tx - rx_cert
-        variacion = random.uniform(-3, 3)
-        at_actual = at_cert + variacion
-        return round(at_cert, 2), round(at_actual, 2)
-
-    def evaluar_estado(at_cert, at_actual):
-        diferencia = at_actual - at_cert
-        if diferencia <= 0.5:
-            return "OK"
-        elif diferencia <= 2:
-            return "ADVERTENCIA"
-        else:
-            return "CRÍTICO"
-
-    def estado_icono_color(estado):
-        if estado == "OK":
-            return "✅", "#2ecc71"
-        elif estado == "ADVERTENCIA":
-            return "⚠️", "#f1c40f"
-        else:
-            return "❌", "#e74c3c"
-
-    datos = []
-    for enlace, valores in enlaces_info.items():
-        tx = valores["Tx"]
-        rx = valores["Rx_cert"]
-        at_cert, at_actual = calcular_atenuaciones(tx, rx)
-        estado = evaluar_estado(at_cert, at_actual)
-        datos.append({
-            "Enlace": enlace,
-            "Tx": tx,
-            "Rx_cert": rx,
-            "Atenuación Certificada": at_cert,
-            "Atenuación Actual": at_actual,
-            "Estado": estado
-        })
-
-    df = pd.DataFrame(datos)
-    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]  # <--- ESTA LÍNEA ANTES DE USARLA
     cols_kpi = st.columns(3)
     for i, row in enumerate(df.itertuples()):
         icono, color = estado_icono_color(row.Estado)
@@ -138,21 +135,22 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
 
-# --- Columna 3 (nueva)
 with col3:
-    st.subheader("📢 Alertas del Sistema")
-    st.warning("⚠️ Se detectaron 2 enlaces con degradación crítica.")
-    st.success("✅ Todos los enlaces fueron testeados el día actual.")
+    st.subheader("📊 Indicadores Globales")
+    total_ok = df[df["Estado"] == "OK"].shape[0]
+    total_enlaces = df.shape[0]
+    enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
+    st.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
+    st.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
+    st.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
     st.info(f"El promedio de aumento de atenuación es de **{df['Diferencia'].mean():.2f} dB**.")
 
-# --------------------------------------------
-# FILA 2
-# --------------------------------------------
+# ================= FILA 2 ===================
 col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
     st.subheader("📈 Curvas OTDR Comparativas")
-    fig, ax = plt.subplots(figsize=(8.4, 4.2))
+    fig, ax = plt.subplots(figsize=(5, 3))
     x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
     x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
     ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06")
@@ -175,14 +173,10 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 with col3:
-    st.subheader("📅 Agenda de Verificaciones")
-    st.info("📍 MZA-CCTV-01 – próximo control: 2 de agosto.")
-    st.info("📍 MZA-WS-03 – próximo control: 4 de agosto.")
-    st.success("🗓️ Todos los demás enlaces están al día.")
+    st.subheader("📍 Mapa o panel adicional")
+    st.info("Aquí podrías agregar el mapa, tabla comparativa u otro panel personalizado.")
 
-# --------------------------------------------
-# FILA 3
-# --------------------------------------------
+# ================= FILA 3 ===================
 col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
@@ -236,16 +230,10 @@ with col1:
         st.dataframe(pd.DataFrame(tabla), use_container_width=True)
 
 with col2:
-    st.subheader("📈 Indicadores")
-    total_ok = df[df["Estado"] == "OK"].shape[0]
-    total_enlaces = df.shape[0]
-    enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
-    c1, c2, c3 = st.columns(3)
-    c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
-    c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
-    c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
+    st.subheader("📈 Información adicional")
+    st.info("Podés usar este panel para futuras comparativas o logs OTDR.")
 
 with col3:
-    st.subheader("📌 Observaciones Finales")
-    st.write("🔍 Revisión manual sugerida para enlaces con advertencias.")
-    st.success("✔️ Reporte diario generado correctamente.")
+    st.subheader("📡 Futuro espacio para monitoreo")
+    st.success("Aquí podrías integrar una API de monitoreo en tiempo real o notificaciones.")
+
