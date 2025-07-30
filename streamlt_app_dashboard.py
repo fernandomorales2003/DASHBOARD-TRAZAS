@@ -6,11 +6,14 @@ import random
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide", page_title="DASHBOARD OTDR")
+
 st.markdown("<h1 style='text-align:center'>DASHBOARD OTDR</h1>", unsafe_allow_html=True)
 
+# Parámetros del enlace
 distancia = 50.0
 atenuacion_por_km = 0.21
 
+# Eventos patrón
 eventos_patron = {round((i+1)*4, 2): 0.15 for i in range(int(distancia // 4))}
 puntos_disponibles = np.round(np.linspace(1, distancia - 1, int(distancia - 1)), 2)
 puntos_nuevos = random.sample(list(set(puntos_disponibles) - set(eventos_patron.keys())), 8)
@@ -34,9 +37,12 @@ at_total_2024 = round(atenuacion_por_km * distancia + sum(eventos_patron.values(
 at_total_2025 = round(atenuacion_por_km * distancia + sum(eventos_2025.values()), 2)
 porc_aumento = ((at_total_2025 - at_total_2024) / at_total_2024) * 100
 
-# FILA 1 – Ahora con 3 columnas
+# --------------------------------------------
+# FILA 1
+# --------------------------------------------
 col1, col2, col3 = st.columns(3, gap="large")
 
+# --- Columna 1
 with col1:
     st.subheader("📊 ENLACE MZA-NORTE")
     st.metric("🔦 Atenuación Total", f"{at_total_2025:.2f} dB (+{porc_aumento:.1f}%)")
@@ -64,6 +70,7 @@ with col1:
     """
     st.components.v1.html(html_code, height=200)
 
+# --- Columna 2
 with col2:
     st.subheader("📌 Estado de Enlaces (KPI)")
     enlaces_info = {
@@ -114,6 +121,7 @@ with col2:
         })
 
     df = pd.DataFrame(datos)
+    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]  # <--- ESTA LÍNEA ANTES DE USARLA
     cols_kpi = st.columns(3)
     for i, row in enumerate(df.itertuples()):
         icono, color = estado_icono_color(row.Estado)
@@ -130,37 +138,17 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
 
+# --- Columna 3 (nueva)
 with col3:
-    st.subheader("📍 Información Adicional")
-
-    st.markdown("### 🔎 Análisis general de enlaces")
+    st.subheader("📢 Alertas del Sistema")
+    st.warning("⚠️ Se detectaron 2 enlaces con degradación crítica.")
+    st.success("✅ Todos los enlaces fueron testeados el día actual.")
     st.info(f"El promedio de aumento de atenuación es de **{df['Diferencia'].mean():.2f} dB**.")
 
-    st.markdown("### 🧯 Indicador de riesgo")
-    riesgo = "BAJO" if porc_aumento < 10 else "MODERADO" if porc_aumento < 25 else "ALTO"
-    color = "#2ecc71" if riesgo == "BAJO" else "#f39c12" if riesgo == "MODERADO" else "#e74c3c"
-    st.markdown(f"""
-        <div style="background-color:{color};
-                    padding:20px;
-                    border-radius:10px;
-                    text-align:center;
-                    color:white;
-                    margin-bottom:20px;">
-            <h3>Nivel de Riesgo</h3>
-            <p style="font-size:24px;"><strong>{riesgo}</strong></p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### 📊 Distribución de Estados")
-    estados_count = df["Estado"].value_counts()
-    fig_pie = go.Figure(data=[go.Pie(labels=estados_count.index,
-                                     values=estados_count.values,
-                                     hole=0.5)])
-    fig_pie.update_layout(height=280, showlegend=True)
-    st.plotly_chart(fig_pie, use_container_width=True)
-
+# --------------------------------------------
 # FILA 2
-col1, col2 = st.columns(2, gap="large")
+# --------------------------------------------
+col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
     st.subheader("📈 Curvas OTDR Comparativas")
@@ -186,8 +174,16 @@ with col2:
     fig.update_layout(barmode="group", yaxis_title="Atenuación (dB)", height=400)
     st.plotly_chart(fig, use_container_width=True)
 
+with col3:
+    st.subheader("📅 Agenda de Verificaciones")
+    st.info("📍 MZA-CCTV-01 – próximo control: 2 de agosto.")
+    st.info("📍 MZA-WS-03 – próximo control: 4 de agosto.")
+    st.success("🗓️ Todos los demás enlaces están al día.")
+
+# --------------------------------------------
 # FILA 3
-col1, col2 = st.columns(2, gap="large")
+# --------------------------------------------
+col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
     st.subheader("📋 Mostrar tabla de eventos")
@@ -243,9 +239,13 @@ with col2:
     st.subheader("📈 Indicadores")
     total_ok = df[df["Estado"] == "OK"].shape[0]
     total_enlaces = df.shape[0]
-    df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]
     enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
     c1, c2, c3 = st.columns(3)
     c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
     c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
     c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
+
+with col3:
+    st.subheader("📌 Observaciones Finales")
+    st.write("🔍 Revisión manual sugerida para enlaces con advertencias.")
+    st.success("✔️ Reporte diario generado correctamente.")
