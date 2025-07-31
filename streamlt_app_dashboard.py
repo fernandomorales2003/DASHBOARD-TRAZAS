@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import pydeck as pdk
 import math
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Dashboard Recorridos de Fibra", layout="wide")
 
@@ -39,7 +40,15 @@ trazas = {
             "HUB 1.1", "HUB 1.2", "HUB 2.1",
             "HUB 2.2", "HUB 3.1", "HUB 3.2"
         ],
-        "color_base": [0, 200, 255]
+        "color_base": [0, 200, 255],
+        "clientes_hubs": {
+            "HUB 1.1": 38,
+            "HUB 1.2": 60,
+            "HUB 2.1": 50,
+            "HUB 2.2": 43,
+            "HUB 3.1": 35,
+            "HUB 3.2": 55
+        }
     },
     "TR1-SUR": {
         "coordenadas": [
@@ -61,9 +70,10 @@ st.sidebar.title("Configuración del Mapa")
 traza_seleccionada = st.sidebar.selectbox("Seleccioná la traza", list(trazas.keys()))
 
 # --- Cargar datos
-coordenadas = trazas[traza_seleccionada]["coordenadas"]
-nombres = trazas[traza_seleccionada]["nombres"]
-color_base = trazas[traza_seleccionada]["color_base"]
+datos_traza = trazas[traza_seleccionada]
+coordenadas = datos_traza["coordenadas"]
+nombres = datos_traza["nombres"]
+color_base = datos_traza["color_base"]
 
 # --- Calcular distancias acumuladas
 distancias = []
@@ -201,3 +211,31 @@ st.pydeck_chart(pdk.Deck(
     initial_view_state=view_state,
     tooltip=tooltip
 ))
+
+# --- Radar Chart (sólo para TR-S-DER-02)
+if traza_seleccionada == "TR-S-DER-02":
+    clientes_por_hub = trazas["TR-S-DER-02"]["clientes_hubs"]
+    categorias = list(clientes_por_hub.keys())
+    valores = list(clientes_por_hub.values())
+    categorias.append(categorias[0])
+    valores.append(valores[0])
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatterpolar(
+        r=valores,
+        theta=categorias,
+        fill='toself',
+        name='Clientes por HUB',
+        line_color='deepskyblue'
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True)
+        ),
+        showlegend=False,
+        title="Distribución de Clientes por HUB"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
