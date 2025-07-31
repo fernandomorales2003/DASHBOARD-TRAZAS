@@ -5,9 +5,9 @@ import math
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
-# Función para calcular distancia entre dos coordenadas
+# Función para calcular distancia entre coordenadas (Haversine)
 def haversine(coord1, coord2):
-    R = 6371000  # Radio de la Tierra en metros
+    R = 6371000  # metros
     lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
     lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
     dlat = lat2 - lat1
@@ -16,7 +16,7 @@ def haversine(coord1, coord2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# Coordenadas corregidas desde KMZ
+# Coordenadas corregidas desde el KMZ
 coordenadas = [
     (-35.4708633166351,  -69.57766819274954),
     (-35.47083740176508, -69.57721906428888),
@@ -27,6 +27,13 @@ coordenadas = [
     (-35.47188945240595, -69.57254924372452),
     (-35.47297521564813, -69.5724348810358),
     (-35.47299678040343, -69.57282559280863),
+]
+
+# Nombres personalizados de cada punto
+nombres = [
+    "DATACENTER", "FOSC 01", "FOSC 02",
+    "HUB 1.1", "HUB 1.2", "HUB 2.1",
+    "HUB 2.2", "HUB 3.1", "HUB 3.2"
 ]
 
 # Calcular distancias acumuladas
@@ -40,9 +47,9 @@ for i in range(len(coordenadas)):
         acumulada += d
         distancias.append(round(acumulada, 1))
 
-# Puntos y líneas
+# Puntos y segmentos
 puntos = [{
-    "label": f"Punto {i+1}",
+    "label": f"Punto {i+1} : {nombres[i]}",
     "lat": lat,
     "lon": lon,
     "dist": f"{distancias[i]} m"
@@ -58,7 +65,7 @@ segmentos = [{
 df_puntos = pd.DataFrame(puntos)
 df_lineas = pd.DataFrame(segmentos)
 
-# Capas para pydeck
+# Capas de pydeck
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_lineas,
@@ -77,10 +84,11 @@ point_layer = pdk.Layer(
     pickable=True,
 )
 
+# Mayor zoom al iniciar
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
-    zoom=14,
+    zoom=15.5,  # Más zoom
     pitch=0,
 )
 
