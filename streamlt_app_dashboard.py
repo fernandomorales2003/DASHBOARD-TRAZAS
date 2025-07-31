@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+import math
 
 st.set_page_config(page_title="Ruta de Fibra - TR-S-DER-02", layout="wide")
 
@@ -29,12 +30,22 @@ nombres = [
     "HUB 3.2",
 ]
 
-# Calcular distancias acumuladas
-from geopy.distance import geodesic
+# Cálculo de distancia acumulada con fórmula Haversine (en metros)
+def haversine(coord1, coord2):
+    R = 6371000  # radio de la Tierra en metros
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(delta_lambda/2)**2
+    return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+
 distancias = [0]
 acum = 0
 for i in range(1, len(coordenadas)):
-    d = geodesic(coordenadas[i-1], coordenadas[i]).meters
+    d = haversine(coordenadas[i-1], coordenadas[i])
     acum += d
     distancias.append(round(acum, 1))
 
@@ -91,11 +102,11 @@ scatter_layer = pdk.Layer(
     data=df_puntos[1:],  # Excluye DATACENTER
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=75,  # Agrandado 50%
+    get_radius=110,  # 50% más grande que antes (75 → 110)
     pickable=True,
 )
 
-# Vista inicial más cercana
+# Vista inicial con zoom más cercano
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -103,7 +114,7 @@ view_state = pdk.ViewState(
     pitch=0
 )
 
-# Tooltip con información
+# Tooltip
 tooltip = {
     "html": "<b>{label}</b><br/>Distancia desde inicio: {distancia} m",
     "style": {"backgroundColor": "white", "color": "black"}
