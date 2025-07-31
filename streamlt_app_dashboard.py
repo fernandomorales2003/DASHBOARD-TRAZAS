@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+from geopy.distance import geodesic
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
@@ -17,8 +18,24 @@ coordenadas = [
     (-35.47299678040343, -69.57282559280863),
 ]
 
+# Calcular distancias acumuladas
+distancias = []
+acumulada = 0
+for i in range(len(coordenadas)):
+    if i == 0:
+        distancias.append(0)
+    else:
+        d = geodesic(coordenadas[i - 1], coordenadas[i]).meters
+        acumulada += d
+        distancias.append(round(acumulada, 1))
+
 # Armar puntos y segmentos
-puntos = [{"label": f"Punto {i+1}", "lat": lat, "lon": lon} for i, (lat, lon) in enumerate(coordenadas)]
+puntos = [{
+    "label": f"Punto {i+1}",
+    "lat": lat,
+    "lon": lon,
+    "dist": f"{distancias[i]} m"
+} for i, ((lat, lon), _) in enumerate(zip(coordenadas, distancias))]
 
 segmentos = []
 for i in range(len(puntos) - 1):
@@ -47,7 +64,7 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=20,  # achicamos el radio de los puntos
+    get_radius=2,  # tamaño muy pequeño
     pickable=True,
 )
 
@@ -59,7 +76,11 @@ view_state = pdk.ViewState(
     pitch=0,
 )
 
-tooltip = {"html": "<b>{label}</b>", "style": {"backgroundColor": "white"}}
+# Tooltip personalizado con distancia
+tooltip = {
+    "html": "<b>{label}</b><br/>Distancia: {dist}",
+    "style": {"backgroundColor": "white"}
+}
 
 # Mostrar en Streamlit
 st.title("Recorrido de fibra óptica – TR-S-DER-02")
