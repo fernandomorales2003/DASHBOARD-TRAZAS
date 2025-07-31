@@ -59,7 +59,7 @@ for i in range(len(coordenadas)):
 distancia_total = distancias[-1]
 st.markdown(f"### Distancia total del enlace: `{distancia_total:.1f} m`")
 
-# Checkbox para habilitar corte
+# Checkbox para informar corte
 corte_activo = st.checkbox("Informar CORTE DE FIBRA")
 
 distancia_corte = 0
@@ -72,7 +72,7 @@ if corte_activo:
         step=1.0,
     )
 
-# Generar puntos y segmentos
+# Generar puntos
 puntos = [{
     "label": nombres[i],
     "lat": lat,
@@ -81,17 +81,20 @@ puntos = [{
     "dist_str": f"{distancias[i]} m"
 } for i, (lat, lon) in enumerate(coordenadas)]
 
+# Generar segmentos según distancia de corte
 segmentos = []
 for i in range(len(puntos) - 1):
     d_inicio = puntos[i]["dist"]
-    d_fin = puntos[i+1]["dist"]
-    color = [0, 200, 255]  # Azul
-    if d_inicio < distancia_corte < d_fin:
-        # Cortar en dos segmentos
+    d_fin = puntos[i + 1]["dist"]
+    color = [0, 200, 255]  # Azul por defecto
+
+    if corte_activo and d_inicio < distancia_corte < d_fin:
+        # Interpolación para corte en medio del segmento
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
         lon_interp = puntos[i]["lon"] + ratio * (puntos[i+1]["lon"] - puntos[i]["lon"])
 
+        # Primer tramo azul
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -99,6 +102,8 @@ for i in range(len(puntos) - 1):
             ],
             "color": [0, 200, 255]
         })
+
+        # Segundo tramo rojo
         segmentos.append({
             "coordinates": [
                 [lon_interp, lat_interp],
@@ -106,9 +111,11 @@ for i in range(len(puntos) - 1):
             ],
             "color": [255, 0, 0]
         })
+
     else:
-        if distancia_corte and d_inicio >= distancia_corte:
-            color = [255, 0, 0]  # Rojo
+        if corte_activo and d_inicio >= distancia_corte:
+            color = [255, 0, 0]  # Rojo después del corte
+
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -117,10 +124,11 @@ for i in range(len(puntos) - 1):
             "color": color
         })
 
+# DataFrames
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 
-# Capas de pydeck
+# Capas
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_segmentos,
@@ -139,7 +147,7 @@ point_layer = pdk.Layer(
     pickable=True,
 )
 
-# Mapa centrado en el primer punto
+# Mapa centrado
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -152,6 +160,7 @@ tooltip = {
     "style": {"backgroundColor": "white"}
 }
 
+# Mostrar mapa
 st.pydeck_chart(pdk.Deck(
     layers=[line_layer, point_layer],
     initial_view_state=view_state,
