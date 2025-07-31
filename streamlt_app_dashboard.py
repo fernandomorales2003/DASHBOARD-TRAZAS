@@ -36,12 +36,12 @@ coordenadas = [
     (-35.501746, -69.582981)
 ]
 
-# Nombres personalizados
+# Nombres personalizados sin "PUNTO X -"
 nombres = [
-    "PUNTO 1 - DATACENTER", "PUNTO 2 - FOSC 01", "PUNTO 3 - FOSC 02",
-    "PUNTO 4 - FOSC 03", "PUNTO 5 - FOSC 04", "PUNTO 6 - FOSC 05",
-    "PUNTO 7 - FOSC 06", "PUNTO 8 - FOSC 07", "PUNTO 9 - FOSC 08",
-    "PUNTO 10 - FOSC 09", "PUNTO 11 - FOSC 10", "PUNTO 12 - TORRE WISP"
+    "DATACENTER", "FOSC 01", "FOSC 02",
+    "FOSC 03", "FOSC 04", "FOSC 05",
+    "FOSC 06", "FOSC 07", "FOSC 08",
+    "FOSC 09", "FOSC 10", "TORRE WISP"
 ]
 
 # Calcular distancias acumuladas
