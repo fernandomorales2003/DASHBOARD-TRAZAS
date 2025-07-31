@@ -1,5 +1,3 @@
-# fiber_map_kml.py
-
 import streamlit as st
 import zipfile
 from fastkml import kml
@@ -14,14 +12,14 @@ st.title("Visualización de Recorrido de Fibra Óptica desde archivo KMZ")
 uploaded_file = st.file_uploader("Subí el archivo KMZ (KML comprimido)", type=["kmz"])
 
 if uploaded_file:
-    # Guardar archivo
+    # Guardar archivo KMZ
     kmz_path = "temp.kmz"
     kml_path = "ruta.kml"
 
     with open(kmz_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    # Extraer el KML del KMZ
+    # Extraer el archivo .kml del .kmz
     with zipfile.ZipFile(kmz_path, 'r') as kmz:
         for file in kmz.namelist():
             if file.endswith(".kml"):
@@ -29,20 +27,28 @@ if uploaded_file:
                 os.rename(file, kml_path)
                 break
 
-    # Leer el archivo KML
+    # Leer y parsear KML
     with open(kml_path, "r", encoding="utf-8") as f:
         doc = f.read()
 
-    # Parsear el KML
     k = kml.KML()
     k.from_string(doc)
-    features = list(k.features())
-    placemarks = list(features[0].features())
 
+    # Función recursiva para encontrar todos los Placemark
+    def get_all_placemarks(features):
+        placemarks = []
+        for f in features:
+            if hasattr(f, 'geometry') and f.geometry:  # es un Placemark
+                placemarks.append(f)
+            elif hasattr(f, 'features'):
+                placemarks.extend(get_all_placemarks(list(f.features())))
+        return placemarks
+
+    all_placemarks = get_all_placemarks(list(k.features()))
     puntos = []
     lineas = []
 
-    for pm in placemarks:
+    for pm in all_placemarks:
         geom = pm.geometry
         if isinstance(geom, Point):
             puntos.append({
@@ -59,7 +65,7 @@ if uploaded_file:
     df_puntos = pd.DataFrame(puntos)
     df_lineas = pd.DataFrame(lineas)
 
-    # Mapa
+    # Capas para Pydeck
     point_layer = pdk.Layer(
         "ScatterplotLayer", data=df_puntos,
         get_position='[lon, lat]', get_color=[255, 0, 0],
