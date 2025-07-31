@@ -81,8 +81,8 @@ segmentos = []
 for i in range(len(puntos) - 1):
     d_inicio = puntos[i]["dist"]
     d_fin = puntos[i+1]["dist"]
-    color = [0, 200, 255]  # Azul
-    if d_inicio < distancia_corte < d_fin:
+
+    if corte_activo and d_inicio < distancia_corte < d_fin:
         # Cortar en dos segmentos
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
@@ -93,18 +93,21 @@ for i in range(len(puntos) - 1):
                 [puntos[i]["lon"], puntos[i]["lat"]],
                 [lon_interp, lat_interp]
             ],
-            "color": [0, 200, 255]
+            "color": [0, 200, 255]  # Azul hasta el corte
         })
         segmentos.append({
             "coordinates": [
                 [lon_interp, lat_interp],
                 [puntos[i+1]["lon"], puntos[i+1]["lat"]]
             ],
-            "color": [255, 0, 0]
+            "color": [255, 0, 0]  # Rojo después del corte
         })
+
     else:
-        if d_inicio > distancia_corte:
-            color = [255, 0, 0]  # Rojo
+        color = [0, 200, 255]  # Azul por defecto
+        if corte_activo and d_inicio >= distancia_corte:
+            color = [255, 0, 0]  # Rojo si es posterior al corte
+
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -131,7 +134,7 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=4.5,  # 50% más grande que antes
+    get_radius=4.5,
     pickable=True,
 )
 
