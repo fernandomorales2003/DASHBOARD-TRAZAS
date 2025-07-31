@@ -7,15 +7,18 @@ st.set_page_config(page_title="Recorrido de Fibra Óptica", layout="wide")
 
 def haversine(coord1, coord2):
     R = 6371000
-    lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
-    lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
+    lat1, lon1 = math.radians(coord1[0])
+    lon1 = math.radians(coord1[1])
+    lat2 = math.radians(coord2[0])
+    lon2 = math.radians(coord2[1])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# TR-S-DER-02
+# Coordenadas y nombres de cada traza
+
 coordenadas_der = [
     (-33.085064, -68.46635),
     (-33.078960, -68.465488),
@@ -33,7 +36,6 @@ nombres_der = [
     "FUSIÓN 4", "FUSIÓN 5", "FUSIÓN 6", "FUSIÓN 7", "OLT1"
 ]
 
-# TR1-SUR
 coordenadas_sur = [
     (-35.470812, -69.577695),
     (-35.470874, -69.577691),
@@ -55,34 +57,37 @@ nombres_sur = [
     "FOSC 08", "FOSC 09", "FOSC 10", "TORRE WISP"
 ]
 
-# Selección de traza
+# Selector de traza
 traza_seleccionada = st.selectbox("Seleccioná la traza:", ["TR-S-DER-02", "TR1-SUR"])
 
 if traza_seleccionada == "TR-S-DER-02":
     coordenadas = coordenadas_der
     nombres = nombres_der
+    color_base = [0, 255, 0]  # verde azulado
 else:
     coordenadas = coordenadas_sur
     nombres = nombres_sur
+    color_base = [0, 200, 255]  # azul
 
-# Cálculo de distancias
+# Calcular distancias acumuladas
 distancias = []
-acum = 0
+acumulada = 0
 for i in range(len(coordenadas)):
     if i == 0:
         distancias.append(0)
     else:
         d = haversine(coordenadas[i - 1], coordenadas[i])
-        acum += d
-        distancias.append(round(acum, 1))
+        acumulada += d
+        distancias.append(round(acumulada, 1))
 
+# Mostrar distancia total
 distancia_total = distancias[-1]
 st.markdown(f"### Distancia total del enlace: `{distancia_total:.1f} m`")
 
-# Checkbox para corte
-corte_activo = st.checkbox("Informar CORTE DE FIBRA")
+# Informar corte
+corte_activado = st.checkbox("Informar CORTE DE FIBRA")
 distancia_corte = 0
-if corte_activo:
+if corte_activado:
     distancia_corte = st.number_input(
         "Ingresá la distancia (en metros) donde se detecta un corte de fibra:",
         min_value=0.0,
@@ -91,52 +96,56 @@ if corte_activo:
         step=1.0
     )
 
-# Puntos y segmentos
+# Crear puntos
 puntos = [{
     "label": nombres[i],
-    "lat": lat,
-    "lon": lon,
+    "lat": coordenadas[i][0],
+    "lon": coordenadas[i][1],
     "dist": distancias[i],
     "dist_str": f"{distancias[i]} m"
-} for i, (lat, lon) in enumerate(coordenadas)]
+} for i in range(len(coordenadas))]
 
+# Crear segmentos de línea con color según corte
 segmentos = []
 for i in range(len(puntos) - 1):
-    d_inicio = puntos[i]["dist"]
-    d_fin = puntos[i+1]["dist"]
-    color = [0, 200, 255]  # Azul
-    if d_inicio < distancia_corte < d_fin:
-        ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
-        lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
-        lon_interp = puntos[i]["lon"] + ratio * (puntos[i+1]["lon"] - puntos[i]["lon"])
+    d1 = puntos[i]["dist"]
+    d2 = puntos[i + 1]["dist"]
+    color = color_base
+
+    if d1 < distancia_corte < d2:
+        ratio = (distancia_corte - d1) / (d2 - d1)
+        lat_corte = puntos[i]["lat"] + ratio * (puntos[i + 1]["lat"] - puntos[i]["lat"])
+        lon_corte = puntos[i]["lon"] + ratio * (puntos[i + 1]["lon"] - puntos[i]["lon"])
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
-                [lon_interp, lat_interp]
+                [lon_corte, lat_corte]
             ],
-            "color": [0, 200, 255]
+            "color": color_base
         })
         segmentos.append({
             "coordinates": [
-                [lon_interp, lat_interp],
-                [puntos[i+1]["lon"], puntos[i+1]["lat"]]
+                [lon_corte, lat_corte],
+                [puntos[i + 1]["lon"], puntos[i + 1]["lat"]]
             ],
-            "color": [255, 0, 0]
+            "color": [255, 0, 0]  # rojo
         })
     else:
-        if distancia_corte and d_inicio >= distancia_corte:
-            color = [255, 0, 0]  # Rojo
+        if distancia_corte and d1 >= distancia_corte:
+            color = [255, 0, 0]
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
-                [puntos[i+1]["lon"], puntos[i+1]["lat"]]
+                [puntos[i + 1]["lon"], puntos[i + 1]["lat"]]
             ],
             "color": color
         })
 
+# Crear DataFrames
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 
+# Layers de PyDeck
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_segmentos,
@@ -151,10 +160,11 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=4.5,
+    get_radius=5,
     pickable=True
 )
 
+# View y tooltip
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -167,6 +177,7 @@ tooltip = {
     "style": {"backgroundColor": "white"}
 }
 
+# Render del mapa
 st.pydeck_chart(pdk.Deck(
     layers=[line_layer, point_layer],
     initial_view_state=view_state,
