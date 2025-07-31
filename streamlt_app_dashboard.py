@@ -1,11 +1,22 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
-from geopy.distance import geodesic
+import math
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
-# Coordenadas reales corregidas del KMZ
+# Función para calcular distancia entre dos coordenadas
+def haversine(coord1, coord2):
+    R = 6371000  # Radio de la Tierra en metros
+    lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
+    lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+# Coordenadas corregidas desde KMZ
 coordenadas = [
     (-35.4708633166351,  -69.57766819274954),
     (-35.47083740176508, -69.57721906428888),
@@ -25,26 +36,24 @@ for i in range(len(coordenadas)):
     if i == 0:
         distancias.append(0)
     else:
-        d = geodesic(coordenadas[i - 1], coordenadas[i]).meters
+        d = haversine(coordenadas[i - 1], coordenadas[i])
         acumulada += d
         distancias.append(round(acumulada, 1))
 
-# Armar puntos y segmentos
+# Puntos y líneas
 puntos = [{
     "label": f"Punto {i+1}",
     "lat": lat,
     "lon": lon,
     "dist": f"{distancias[i]} m"
-} for i, ((lat, lon), _) in enumerate(zip(coordenadas, distancias))]
+} for i, (lat, lon) in enumerate(coordenadas)]
 
-segmentos = []
-for i in range(len(puntos) - 1):
-    segmentos.append({
-        "coordinates": [
-            [puntos[i]["lon"], puntos[i]["lat"]],
-            [puntos[i + 1]["lon"], puntos[i + 1]["lat"]]
-        ]
-    })
+segmentos = [{
+    "coordinates": [
+        [puntos[i]["lon"], puntos[i]["lat"]],
+        [puntos[i+1]["lon"], puntos[i+1]["lat"]]
+    ]
+} for i in range(len(puntos) - 1)]
 
 df_puntos = pd.DataFrame(puntos)
 df_lineas = pd.DataFrame(segmentos)
@@ -64,11 +73,10 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=2,  # tamaño muy pequeño
+    get_radius=2,  # 10% del tamaño original
     pickable=True,
 )
 
-# Vista inicial centrada
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -76,13 +84,11 @@ view_state = pdk.ViewState(
     pitch=0,
 )
 
-# Tooltip personalizado con distancia
 tooltip = {
     "html": "<b>{label}</b><br/>Distancia: {dist}",
     "style": {"backgroundColor": "white"}
 }
 
-# Mostrar en Streamlit
 st.title("Recorrido de fibra óptica – TR-S-DER-02")
 st.pydeck_chart(pdk.Deck(
     layers=[line_layer, point_layer],
