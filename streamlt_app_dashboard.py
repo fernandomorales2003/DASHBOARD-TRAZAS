@@ -20,28 +20,36 @@ def haversine(coord1, coord2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# Coordenadas de TR1-SUR extraídas del KMZ
+# Coordenadas extraídas del KMZ de TR1-SUR
 coordenadas = [
-    (-35.470812, -69.577695),
-    (-35.470874, -69.577691),
-    (-35.470914, -69.578495),
-    (-35.473146, -69.578359),
-    (-35.474385, -69.578319),
-    (-35.474353, -69.577005),
-    (-35.476546, -69.576911),
-    (-35.476760, -69.585089),
-    (-35.497015, -69.585443),
-    (-35.497223, -69.581949),
-    (-35.501802, -69.582158),
-    (-35.501746, -69.582981)
+    (-35.4711527, -69.5698896),
+    (-35.4711770, -69.5706396),
+    (-35.4706813, -69.5706642),
+    (-35.4706819, -69.5713392),
+    (-35.4707073, -69.5721948),
+    (-35.4707326, -69.5729184),
+    (-35.4707070, -69.5736874),
+    (-35.4707577, -69.5746324),
+    (-35.4708078, -69.5755333),
+    (-35.4708331, -69.5761963),
+    (-35.4708325, -69.5769651),
+    (-35.4708374, -69.5772191)
 ]
 
-# Nombres personalizados
+# Asignar nombres personalizados
 nombres = [
-    "PUNTO 1 - DATACENTER", "PUNTO 2 - FOSC 01", "PUNTO 3 - FOSC 02",
-    "PUNTO 4 - FOSC 03", "PUNTO 5 - FOSC 04", "PUNTO 6 - FOSC 05",
-    "PUNTO 7 - FOSC 06", "PUNTO 8 - FOSC 07", "PUNTO 9 - FOSC 08",
-    "PUNTO 10 - FOSC 09", "PUNTO 11 - FOSC 10", "PUNTO 12 - TORRE WISP"
+    "PUNTO 1 – DATACENTER",
+    "PUNTO 2 – FOSC 01",
+    "PUNTO 3 – FOSC 02",
+    "PUNTO 4 – FOSC 03",
+    "PUNTO 5 – FOSC 04",
+    "PUNTO 6 – FOSC 05",
+    "PUNTO 7 – FOSC 06",
+    "PUNTO 8 – FOSC 07",
+    "PUNTO 9 – FOSC 08",
+    "PUNTO 10 – FOSC 09",
+    "PUNTO 11 – FOSC 10",
+    "PUNTO 12 – TORRE WISP"
 ]
 
 # Calcular distancias acumuladas
@@ -59,7 +67,7 @@ for i in range(len(coordenadas)):
 distancia_total = distancias[-1]
 st.markdown(f"### Distancia total del enlace: `{distancia_total:.1f} m`")
 
-# Checkbox para habilitar corte
+# Checkbox para habilitar reporte de corte
 corte_activo = st.checkbox("Informar CORTE DE FIBRA")
 
 distancia_corte = 0
@@ -72,7 +80,7 @@ if corte_activo:
         step=1.0,
     )
 
-# Generar puntos y segmentos
+# Generar puntos
 puntos = [{
     "label": nombres[i],
     "lat": lat,
@@ -81,12 +89,14 @@ puntos = [{
     "dist_str": f"{distancias[i]} m"
 } for i, (lat, lon) in enumerate(coordenadas)]
 
+# Generar segmentos entre puntos
 segmentos = []
 for i in range(len(puntos) - 1):
     d_inicio = puntos[i]["dist"]
     d_fin = puntos[i+1]["dist"]
-    color = [0, 200, 255]  # Azul
-    if d_inicio < distancia_corte < d_fin:
+    color = [0, 200, 255]  # Azul por defecto
+
+    if corte_activo and d_inicio < distancia_corte < d_fin:
         # Cortar en dos segmentos
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
@@ -107,8 +117,8 @@ for i in range(len(puntos) - 1):
             "color": [255, 0, 0]
         })
     else:
-        if d_inicio > distancia_corte:
-            color = [255, 0, 0]  # Rojo
+        if corte_activo and d_inicio >= distancia_corte:
+            color = [255, 0, 0]
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -117,10 +127,11 @@ for i in range(len(puntos) - 1):
             "color": color
         })
 
+# DataFrames para PyDeck
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 
-# Capas de pydeck
+# Capas de visualización
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_segmentos,
@@ -139,11 +150,11 @@ point_layer = pdk.Layer(
     pickable=True,
 )
 
-# Mapa centrado en el primer punto
+# Vista inicial centrada en el primer punto
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
-    zoom=13,
+    zoom=15.5,
     pitch=0,
 )
 
@@ -152,6 +163,7 @@ tooltip = {
     "style": {"backgroundColor": "white"}
 }
 
+# Mostrar el mapa
 st.pydeck_chart(pdk.Deck(
     layers=[line_layer, point_layer],
     initial_view_state=view_state,
