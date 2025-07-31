@@ -29,14 +29,14 @@ coordenadas = [
     (-35.47299678040343, -69.57282559280863),
 ]
 
-# Nombres personalizados de cada punto
+# Nombres personalizados
 nombres = [
     "DATACENTER", "FOSC 01", "FOSC 02",
     "HUB 1.1", "HUB 1.2", "HUB 2.1",
     "HUB 2.2", "HUB 3.1", "HUB 3.2"
 ]
 
-# Calcular distancias acumuladas
+# Distancias acumuladas
 distancias = []
 acumulada = 0
 for i in range(len(coordenadas)):
@@ -47,9 +47,9 @@ for i in range(len(coordenadas)):
         acumulada += d
         distancias.append(round(acumulada, 1))
 
-# Puntos y segmentos
+# DataFrame de puntos
 puntos = [{
-    "label": f"Punto {i+1} : {nombres[i]}",
+    "label": nombres[i],
     "lat": lat,
     "lon": lon,
     "dist": f"{distancias[i]} m"
@@ -80,15 +80,14 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=2,  # 10% del tamaño original
+    get_radius=3,  # aumentado 50%
     pickable=True,
 )
 
-# Mayor zoom al iniciar
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
-    zoom=15.5,  # Más zoom
+    zoom=15.5,
     pitch=0,
 )
 
