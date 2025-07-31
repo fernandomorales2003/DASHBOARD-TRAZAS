@@ -1,64 +1,116 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+from zipfile import ZipFile
+from xml.etree import ElementTree as ET
 
-st.set_page_config(page_title="Fiber Route Mendoza", layout="wide")
+st.set_page_config(page_title="FTTH Malargüe", layout="wide")
 
-# Coordenadas reales del centro sobre Av. San Martín
-lat0 = -33.085064
-lon0 = -68.46635
+# ---------- CARGA Y PARSEO DEL ARCHIVO KMZ ----------
 
-# Creamos puntos: DATACENTER, FUSIONES cada ~2 km, y OLT1 final
-labels = ["DATACENTER", "FUSIÓN 1", "FUSIÓN 2", "FUSIÓN 3", "OLT1"]
-puntos = []
+@st.cache_data
+def cargar_kmz(path):
+    with ZipFile(path, 'r') as kmz:
+        kml_files = [f for f in kmz.namelist() if f.endswith('.kml')]
+        with kmz.open(kml_files[0]) as kml_file:
+            kml_content = kml_file.read()
 
-# Los 3 primeros puntos sobre Av. San Martín hacia norte (~0.018° lat ≈ 2 km)
-for i in range(3):
-    puntos.append({
-        "lat": lat0 + i * 0.018,
-        "lon": lon0,
-        "label": labels[i]
-    })
+    ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+    root = ET.fromstring(kml_content)
+    placemarks = root.findall(".//kml:Placemark", ns)
 
-# Luego giramos este (~2 km ≈ 0.018° longitud positiva), hasta completar 8 km total
-for j in range(3,5):
-    puntos.append({
-        "lat": puntos[2]["lat"],
-        "lon": lon0 + (j-2) * 0.018,
-        "label": labels[j]
-    })
+    lineas = []
+    puntos = []
 
-df_puntos = pd.DataFrame(puntos)
+    for pm in placemarks:
+        name = pm.find("kml:name", ns)
+        line = pm.find(".//kml:LineString", ns)
+        point = pm.find(".//kml:Point", ns)
 
-# Construimos segmentos del recorrido
-segmentos = []
-for i in range(len(puntos)-1):
-    segmentos.append({"coordinates": [
-        [puntos[i]["lon"], puntos[i]["lat"]],
-        [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-    ]})
-df_lineas = pd.DataFrame(segmentos)
+        if line is not None:
+            coords_text = line.find("kml:coordinates", ns).text.strip()
+            coords = [c.split(',') for c in coords_text.split()]
+            path = [{"lon": float(lon), "lat": float(lat)} for lon, lat, *_ in coords]
+            lineas.append({"type": "LineString", "name": name.text if name is not None else "", "path": path})
+        elif point is not None:
+            coord = point.find("kml:coordinates", ns).text.strip().split(",")
+            puntos.append({
+                "type": "Point",
+                "name": name.text if name is not None else "",
+                "lon": float(coord[0]),
+                "lat": float(coord[1])
+            })
 
-# LineLayer y PointLayer
-line_layer = pdk.Layer(
-    "LineLayer", data=df_lineas,
-    get_source_position="coordinates[0]",
-    get_target_position="coordinates[1]",
-    get_color=[0, 200, 255], get_width=4)
+    return lineas, puntos
 
-point_layer = pdk.Layer(
-    "ScatterplotLayer", data=df_puntos,
-    get_position='[lon, lat]', get_color=[255, 0, 0],
-    get_radius=50, pickable=True)
+# Cambiar ruta si lo usás localmente
+kmz_path = "FTTH-MALARGUE.kmz"
+lineas, puntos = cargar_kmz(kmz_path)
+
+# ---------- VISUALIZACIÓN ----------
+
+st.title("🧭 Visualización de Red FTTH – Malargüe")
+
+# Centro del mapa
+lat_centro = pd.DataFrame(puntos)["lat"].mean()
+lon_centro = pd.DataFrame(puntos)["lon"].mean()
 
 view_state = pdk.ViewState(
-    latitude=lat0 + 0.018*1.5, longitude=lon0 + 0.018*0.5,
-    zoom=12.5, pitch=0)
+    latitude=lat_centro,
+    longitude=lon_centro,
+    zoom=14,
+    pitch=0,
+)
 
-tooltip = {"html": "<b>{label}</b>", "style": {"backgroundColor": "white"}}
+# Capas a visualizar
+layers = []
 
-st.title("Simulación de recorrido de fibra sobre calles reales en Mendoza")
-st.pydeck_chart(pdk.Deck(layers=[line_layer, point_layer],
-                         initial_view_state=view_state,
-                         tooltip=tooltip))
+# --- CAPAS DE LÍNEAS ---
+st.sidebar.subheader("🟦 Trazas de fibra")
 
+for i, linea in enumerate(lineas):
+    nombre = linea["name"]
+    coords = linea["path"]
+
+    if st.sidebar.checkbox(f"🧵 {nombre}", value=True, key=f"line_{i}"):
+        df_coords = pd.DataFrame(coords)
+        color = [255, 0, 0] if "TRONCAL" in nombre.upper() else [0, 150, 255]
+        capa = pdk.Layer(
+            "LineLayer",
+            data=df_coords,
+            get_source_position="index",
+            get_target_position="index + 1",
+            get_position=lambda x: [df_coords.iloc[x]["lon"], df_coords.iloc[x]["lat"]],
+            get_color=color,
+            get_width=5,
+            pickable=True,
+            id=f"linea_{i}",
+        )
+        layers.append(capa)
+
+# --- CAPA DE PUNTOS ---
+st.sidebar.subheader("📍 Elementos interiores")
+
+if st.sidebar.checkbox("Mostrar puntos", value=True):
+    df_puntos = pd.DataFrame(puntos)
+    puntos_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df_puntos,
+        get_position='[lon, lat]',
+        get_color=[0, 200, 0],
+        get_radius=40,
+        pickable=True,
+    )
+    layers.append(puntos_layer)
+
+tooltip = {
+    "html": "<b>{name}</b>",
+    "style": {"backgroundColor": "white", "color": "black"}
+}
+
+st.pydeck_chart(pdk.Deck(
+    layers=layers,
+    initial_view_state=view_state,
+    tooltip=tooltip,
+    map_style="mapbox://styles/mapbox/light-v9"
+))
