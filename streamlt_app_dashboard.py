@@ -35,9 +35,9 @@ if uploaded_file:
     k.from_string(doc)
 
     # Función recursiva para obtener todos los Placemarks del árbol completo
-    def get_all_placemarks(features):
+    def get_all_placemarks(features_list):
         placemarks = []
-        for f in features:
+        for f in features_list:
             try:
                 if hasattr(f, 'geometry') and f.geometry:
                     placemarks.append(f)
@@ -110,3 +110,4 @@ if uploaded_file:
         initial_view_state=view_state,
         tooltip=tooltip
     ))
+
