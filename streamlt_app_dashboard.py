@@ -3,21 +3,41 @@ import pandas as pd
 import pydeck as pdk
 import math
 import zipfile
-import xml.etree.ElementTree as ET
+from xml.etree import ElementTree as ET
 
-st.set_page_config(page_title="Recorrido Fibra", layout="wide")
+st.set_page_config(page_title="Recorrido de fibra óptica", layout="wide")
+
+# ------------------- FUNCIONES ------------------------
 
 def haversine(coord1, coord2):
     R = 6371000
-    lat1, lon1 = math.radians(coord1[0])
-    lon1 = math.radians(coord1[1])
-    lat2, lon2 = math.radians(coord2[0])
-    lon2 = math.radians(coord2[1])
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
+
+def extraer_coordenadas_kmz(kmz_file):
+    with zipfile.ZipFile(kmz_file, 'r') as kmz:
+        kml_filename = [f for f in kmz.namelist() if f.endswith('.kml')][0]
+        with kmz.open(kml_filename, 'r') as kml_file:
+            tree = ET.parse(kml_file)
+            root = tree.getroot()
+            ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+            coords = root.findall('.//kml:coordinates', ns)
+            coordenadas = []
+            for coord in coords:
+                partes = coord.text.strip().split()
+                for parte in partes:
+                    lon, lat, *_ = parte.split(',')
+                    coordenadas.append((float(lat), float(lon)))
+            return coordenadas
 
 def generar_dataframe(nombre_traza):
     if nombre_traza == "TR-S-DER-02":
@@ -38,43 +58,18 @@ def generar_dataframe(nombre_traza):
             "HUB 2.2", "HUB 3.1", "HUB 3.2"
         ]
     else:
-        with zipfile.ZipFile("TR1 SUR.kmz", "r") as kmz:
-            kml_str = kmz.read("doc.kml").decode("utf-8")
-        root = ET.fromstring(kml_str)
-        ns = {"kml": "http://www.opengis.net/kml/2.2"}
-        coords = root.findall(".//kml:Placemark/kml:Point/kml:coordinates", ns)
-        coordenadas = []
-        for c in coords:
-            lon, lat, *_ = map(float, c.text.strip().split(","))
-            coordenadas.append((lat, lon))
-        nombres = [
-            "PUNTO 1 - DATACENTER",
-            "PUNTO 2 - FOSC 01",
-            "PUNTO 3 - FOSC 02",
-            "PUNTO 4 - FOSC 03",
-            "PUNTO 5 - FOSC 04",
-            "PUNTO 6 - FOSC 05",
-            "PUNTO 7 - FOSC 06",
-            "PUNTO 8 - FOSC 07",
-            "PUNTO 9 - FOSC 08",
-            "PUNTO 10 - FOSC 09",
-            "PUNTO 11 - FOSC 10",
-            "PUNTO 12 - FOSC 11",
-            "PUNTO 13 - FOSC 12",
-            "PUNTO 14 - FOSC 13",
-            "PUNTO 15 - FOSC 14",
-            "PUNTO 16 - FOSC 15",
-            "PUNTO 17 - FOSC 16",
-            "PUNTO 18 - FOSC 17",
-            "PUNTO 19 - FOSC 18",
-            "PUNTO 20 - FOSC 19",
-            "PUNTO 21 - FOSC 20",
-            "PUNTO 22 - FOSC 21",
-            "PUNTO 23 - FOSC 22",
-            "PUNTO 24 - FOSC 23",
-            "TORRE WISP"
-        ]
+        coordenadas = extraer_coordenadas_kmz("TR1 SUR.kmz")
+        nombres = [f"PUNTO {i+1}" for i in range(len(coordenadas))]
+        nombres[0] = "DATACENTER"
+        if len(nombres) >= 2:
+            nombres[1] = "FOSC 01"
+        if len(nombres) >= 3:
+            nombres[2] = "FOSC 02"
+        if len(nombres) >= 4:
+            nombres[3] = "FOSC 03"
+        nombres[-1] = "TORRE WISP"
 
+    # Calcular distancias
     distancias = []
     acumulada = 0
     for i in range(len(coordenadas)):
@@ -95,60 +90,73 @@ def generar_dataframe(nombre_traza):
     segmentos = [{
         "coordinates": [
             [puntos[i]["lon"], puntos[i]["lat"]],
-            [puntos[i+1]["lon"], puntos[i+1]["lat"]]
+            [puntos[i+1]["lon"], puntos[i+1]["lat"]],
         ],
-        "dist": puntos[i+1]["dist"]
+        "dist_inicio": puntos[i]["dist"],
+        "dist_fin": puntos[i+1]["dist"]
     } for i in range(len(puntos) - 1)]
 
-    return pd.DataFrame(puntos), pd.DataFrame(segmentos), round(acumulada, 1), coordenadas
+    df_puntos = pd.DataFrame(puntos)
+    df_lineas = pd.DataFrame(segmentos)
+    return df_puntos, df_lineas, round(acumulada, 1), coordenadas
 
-# UI
-traza = st.selectbox("Seleccioná la traza:", ["TR-S-DER-02", "TR1SUR"])
-df_puntos, df_lineas, total_distancia, coordenadas = generar_dataframe(traza)
+# ------------------- UI ------------------------
 
-st.markdown(f"### Distancia total del enlace **{traza}**: `{total_distancia} m`")
+tab = st.selectbox("Seleccioná la traza a visualizar:", ["TR-S-DER-02", "TR1-SUR"])
 
-mostrar_corte = st.checkbox("Informar CORTE DE FIBRA")
+df_puntos, df_lineas, total_distancia, coordenadas = generar_dataframe(tab)
 
-corte = 0
-if mostrar_corte:
-    corte = st.number_input(
+st.markdown(f"### Distancia total del enlace: `{total_distancia} m`")
+
+# Informe de corte
+distancia_corte = None
+activar_corte = st.checkbox("Informar CORTE DE FIBRA")
+if activar_corte:
+    distancia_corte = st.number_input(
         "Ingresá la distancia (en metros) donde se detecta un corte de fibra:",
-        min_value=0.0, max_value=total_distancia, step=1.0
+        min_value=0.0,
+        max_value=float(total_distancia),
+        step=1.0
     )
 
-# Capas de línea con color según corte
-lineas_color = []
-for i, row in df_lineas.iterrows():
-    color = [0, 200, 255] if corte == 0 or row["dist"] <= corte else [255, 0, 0]
-    lineas_color.append({
-        "coordinates": row["coordinates"],
-        "color": color
-    })
+# ------------------- MAPA ------------------------
 
-line_layer = pdk.Layer(
+# Dividir en capas azul y roja si hay corte
+lineas_azul = []
+lineas_rojas = []
+
+for i, row in df_lineas.iterrows():
+    if distancia_corte is not None and row["dist_inicio"] >= distancia_corte:
+        lineas_rojas.append(row)
+    else:
+        lineas_azul.append(row)
+
+line_layer_azul = pdk.Layer(
     "LineLayer",
-    data=lineas_color,
+    data=pd.DataFrame(lineas_azul),
     get_source_position="coordinates[0]",
     get_target_position="coordinates[1]",
-    get_color="color",
+    get_color=[0, 200, 255],
     get_width=4,
 )
 
-# Capa de puntos
+line_layer_roja = pdk.Layer(
+    "LineLayer",
+    data=pd.DataFrame(lineas_rojas),
+    get_source_position="coordinates[0]",
+    get_target_position="coordinates[1]",
+    get_color=[255, 0, 0],
+    get_width=4,
+)
+
 point_layer = pdk.Layer(
     "ScatterplotLayer",
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=4.5,
+    get_radius=3,
     pickable=True,
 )
-
-tooltip = {
-    "html": "<b>{label}</b><br/>Distancia: {dist} m",
-    "style": {"backgroundColor": "white"}
-}
 
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
@@ -157,8 +165,15 @@ view_state = pdk.ViewState(
     pitch=0,
 )
 
+tooltip = {
+    "html": "<b>{label}</b><br/>Distancia: {dist} m",
+    "style": {"backgroundColor": "white"}
+}
+
 st.pydeck_chart(pdk.Deck(
-    layers=[line_layer, point_layer],
+    layers=[line_layer_azul, line_layer_roja, point_layer],
     initial_view_state=view_state,
     tooltip=tooltip
 ))
+
+
