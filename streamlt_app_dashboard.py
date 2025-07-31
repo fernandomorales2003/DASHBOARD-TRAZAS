@@ -5,10 +5,11 @@ import math
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
-# Función para calcular distancia entre coordenadas (Haversine)
+# ----- Función para calcular distancia Haversine -----
 def haversine(coord1, coord2):
     R = 6371000  # metros
-    lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
+    lat1, lon1 = math.radians(coord1[0])
+    lon1 = math.radians(coord1[1])
     lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
@@ -16,7 +17,7 @@ def haversine(coord1, coord2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# Coordenadas corregidas desde el KMZ
+# ----- Coordenadas desde KMZ -----
 coordenadas = [
     (-35.4708633166351,  -69.57766819274954),
     (-35.47083740176508, -69.57721906428888),
@@ -29,14 +30,13 @@ coordenadas = [
     (-35.47299678040343, -69.57282559280863),
 ]
 
-# Nombres personalizados
 nombres = [
     "DATACENTER", "FOSC 01", "FOSC 02",
     "HUB 1.1", "HUB 1.2", "HUB 2.1",
     "HUB 2.2", "HUB 3.1", "HUB 3.2"
 ]
 
-# Distancias acumuladas
+# ----- Cálculo de distancias acumuladas -----
 distancias = []
 acumulada = 0
 for i in range(len(coordenadas)):
@@ -47,7 +47,25 @@ for i in range(len(coordenadas)):
         acumulada += d
         distancias.append(round(acumulada, 1))
 
-# DataFrame de puntos
+# Total recorrido
+distancia_total = distancias[-1]
+
+# ----- Sidebar -----
+st.sidebar.header("Corte de Fibra Óptica")
+descripcion = st.sidebar.text_input("Descripción del corte")
+distancia_corte = st.sidebar.number_input(
+    f"Ingrese la distancia del corte (0–{int(distancia_total)} m)",
+    min_value=0.0,
+    max_value=distancia_total,
+    step=1.0
+)
+
+# Mensaje informativo
+if descripcion:
+    st.sidebar.info(f"Descripción: {descripcion}")
+st.sidebar.caption(f"Distancia total del recorrido: {int(distancia_total)} m")
+
+# ----- Preparar puntos -----
 puntos = [{
     "label": nombres[i],
     "lat": lat,
@@ -55,23 +73,30 @@ puntos = [{
     "dist": f"{distancias[i]} m"
 } for i, (lat, lon) in enumerate(coordenadas)]
 
-segmentos = [{
-    "coordinates": [
-        [puntos[i]["lon"], puntos[i]["lat"]],
-        [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-    ]
-} for i in range(len(puntos) - 1)]
+# ----- Crear segmentos coloreados según el corte -----
+segmentos = []
+for i in range(len(puntos) - 1):
+    color = [0, 200, 255]  # azul por defecto
+    if distancias[i] >= distancia_corte and distancia_corte > 0:
+        color = [255, 0, 0]  # rojo desde el punto del corte
+    segmentos.append({
+        "coordinates": [
+            [puntos[i]["lon"], puntos[i]["lat"]],
+            [puntos[i + 1]["lon"], puntos[i + 1]["lat"]]
+        ],
+        "color": color
+    })
 
 df_puntos = pd.DataFrame(puntos)
-df_lineas = pd.DataFrame(segmentos)
+df_segmentos = pd.DataFrame(segmentos)
 
-# Capas de pydeck
+# ----- Capas Pydeck -----
 line_layer = pdk.Layer(
     "LineLayer",
-    data=df_lineas,
+    data=df_segmentos,
     get_source_position="coordinates[0]",
     get_target_position="coordinates[1]",
-    get_color=[0, 200, 255],
+    get_color="color",
     get_width=4,
 )
 
@@ -80,7 +105,7 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=3,  # aumentado 50%
+    get_radius=3,  # tamaño ajustado
     pickable=True,
 )
 
