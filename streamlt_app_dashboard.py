@@ -31,31 +31,32 @@ if uploaded_file:
     with open(kml_path, "r", encoding="utf-8") as f:
         doc = f.read()
 
-    k = kml.KML()
-    k.from_string(doc)
+   k = kml.KML()
+k.from_string(doc)
 
-    # Obtenemos el feature raíz (Document o Folder)
-    try:
-        root_feature = list(k.features())[0]
-    except IndexError:
-        st.error("No se encontraron elementos en el archivo KML.")
+# Función recursiva para obtener todos los Placemarks del árbol
+def get_all_placemarks(features):
+    placemarks = []
+    for f in features:
+        try:
+            if hasattr(f, 'geometry') and f.geometry:
+                placemarks.append(f)
+            elif hasattr(f, 'features'):
+                placemarks.extend(get_all_placemarks(list(f.features())))
+        except Exception as e:
+            st.warning(f"Error al procesar un feature: {e}")
+    return placemarks
+
+# Obtener todos los niveles desde la raíz
+try:
+    root_features = list(k.features())
+    if not root_features:
+        st.error("El archivo KML no contiene geometría reconocible.")
         st.stop()
-
-    # Función recursiva para encontrar todos los Placemarks
-    def get_all_placemarks(features):
-        placemarks = []
-        for f in features:
-            try:
-                if hasattr(f, 'geometry') and f.geometry:
-                    placemarks.append(f)
-                elif hasattr(f, 'features'):
-                    placemarks.extend(get_all_placemarks(list(f.features())))
-            except Exception as e:
-                st.warning(f"Error al procesar un feature: {e}")
-        return placemarks
-
-    all_placemarks = get_all_placemarks([root_feature])
-
+    all_placemarks = get_all_placemarks(root_features)
+except Exception as e:
+    st.error(f"No se pudo procesar el archivo KML: {e}")
+    st.stop()
     # Procesar geometrías
     puntos = []
     lineas = []
