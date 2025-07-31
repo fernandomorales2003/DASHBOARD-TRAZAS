@@ -34,17 +34,29 @@ if uploaded_file:
     k = kml.KML()
     k.from_string(doc)
 
-    # Función recursiva para encontrar todos los Placemark
+    # Obtenemos el feature raíz (Document o Folder)
+    try:
+        root_feature = list(k.features())[0]
+    except IndexError:
+        st.error("No se encontraron elementos en el archivo KML.")
+        st.stop()
+
+    # Función recursiva para encontrar todos los Placemarks
     def get_all_placemarks(features):
         placemarks = []
         for f in features:
-            if hasattr(f, 'geometry') and f.geometry:  # es un Placemark
-                placemarks.append(f)
-            elif hasattr(f, 'features'):
-                placemarks.extend(get_all_placemarks(list(f.features())))
+            try:
+                if hasattr(f, 'geometry') and f.geometry:
+                    placemarks.append(f)
+                elif hasattr(f, 'features'):
+                    placemarks.extend(get_all_placemarks(list(f.features())))
+            except Exception as e:
+                st.warning(f"Error al procesar un feature: {e}")
         return placemarks
 
-    all_placemarks = get_all_placemarks(list(k.features()))
+    all_placemarks = get_all_placemarks([root_feature])
+
+    # Procesar geometrías
     puntos = []
     lineas = []
 
@@ -60,7 +72,6 @@ if uploaded_file:
             coords = list(geom.coords)
             for i in range(len(coords) - 1):
                 lineas.append({"coordinates": [list(coords[i]), list(coords[i+1])]})
-
 
     df_puntos = pd.DataFrame(puntos)
     df_lineas = pd.DataFrame(lineas)
