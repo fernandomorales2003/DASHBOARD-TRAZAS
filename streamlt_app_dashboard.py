@@ -3,7 +3,7 @@ import pandas as pd
 import pydeck as pdk
 import math
 
-st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
+st.set_page_config(page_title="Recorrido Fibra TR1-SUR", layout="wide")
 
 # Función para calcular distancia entre coordenadas (Haversine)
 def haversine(coord1, coord2):
@@ -20,24 +20,28 @@ def haversine(coord1, coord2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# Coordenadas desde el KMZ
+# Coordenadas de TR1-SUR extraídas del KMZ
 coordenadas = [
-    (-35.4708633166351,  -69.57766819274954),
-    (-35.47083740176508, -69.57721906428888),
-    (-35.46764651517933, -69.57737240456761),
-    (-35.46761649309932, -69.5759568599952),
-    (-35.46756355662158, -69.57341267990935),
-    (-35.47194972736314, -69.57318668647875),
-    (-35.47188945240595, -69.57254924372452),
-    (-35.47297521564813, -69.5724348810358),
-    (-35.47299678040343, -69.57282559280863),
+    (-35.470812, -69.577695),
+    (-35.470874, -69.577691),
+    (-35.470914, -69.578495),
+    (-35.473146, -69.578359),
+    (-35.474385, -69.578319),
+    (-35.474353, -69.577005),
+    (-35.476546, -69.576911),
+    (-35.476760, -69.585089),
+    (-35.497015, -69.585443),
+    (-35.497223, -69.581949),
+    (-35.501802, -69.582158),
+    (-35.501746, -69.582981)
 ]
 
 # Nombres personalizados
 nombres = [
-    "DATACENTER", "FOSC 01", "FOSC 02",
-    "HUB 1.1", "HUB 1.2", "HUB 2.1",
-    "HUB 2.2", "HUB 3.1", "HUB 3.2"
+    "PUNTO 1 - DATACENTER", "PUNTO 2 - FOSC 01", "PUNTO 3 - FOSC 02",
+    "PUNTO 4 - FOSC 03", "PUNTO 5 - FOSC 04", "PUNTO 6 - FOSC 05",
+    "PUNTO 7 - FOSC 06", "PUNTO 8 - FOSC 07", "PUNTO 9 - FOSC 08",
+    "PUNTO 10 - FOSC 09", "PUNTO 11 - FOSC 10", "PUNTO 12 - TORRE WISP"
 ]
 
 # Calcular distancias acumuladas
@@ -81,8 +85,8 @@ segmentos = []
 for i in range(len(puntos) - 1):
     d_inicio = puntos[i]["dist"]
     d_fin = puntos[i+1]["dist"]
-
-    if corte_activo and d_inicio < distancia_corte < d_fin:
+    color = [0, 200, 255]  # Azul
+    if d_inicio < distancia_corte < d_fin:
         # Cortar en dos segmentos
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
@@ -93,21 +97,18 @@ for i in range(len(puntos) - 1):
                 [puntos[i]["lon"], puntos[i]["lat"]],
                 [lon_interp, lat_interp]
             ],
-            "color": [0, 200, 255]  # Azul hasta el corte
+            "color": [0, 200, 255]
         })
         segmentos.append({
             "coordinates": [
                 [lon_interp, lat_interp],
                 [puntos[i+1]["lon"], puntos[i+1]["lat"]]
             ],
-            "color": [255, 0, 0]  # Rojo después del corte
+            "color": [255, 0, 0]
         })
-
     else:
-        color = [0, 200, 255]  # Azul por defecto
-        if corte_activo and d_inicio >= distancia_corte:
-            color = [255, 0, 0]  # Rojo si es posterior al corte
-
+        if d_inicio > distancia_corte:
+            color = [255, 0, 0]  # Rojo
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -142,7 +143,7 @@ point_layer = pdk.Layer(
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
-    zoom=15.5,
+    zoom=13,
     pitch=0,
 )
 
