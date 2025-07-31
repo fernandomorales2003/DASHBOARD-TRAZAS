@@ -4,30 +4,37 @@ import pydeck as pdk
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
-# Puntos extraídos del archivo KMZ
-puntos = [
-    {"label": "Inicio", "lat": -35.48093650938789, "lon": -69.58273473535873},
-    {"label": "Punto", "lat": -35.48240487851016, "lon": -69.58042579070939},
-    {"label": "Punto", "lat": -35.4833245422237, "lon": -69.57873352988782},
-    {"label": "Punto", "lat": -35.48535003634032, "lon": -69.57606582049495},
-    {"label": "Punto", "lat": -35.48775311021605, "lon": -69.5740814427083},
-    {"label": "Fin", "lat": -35.49026422575704, "lon": -69.57225488990632},
+# Coordenadas reales extraídas desde el KMZ (lat, lon)
+coordenadas = [
+    (-35.4708633166351, -69.57766819274954),
+    (-35.47083740176508, -69.57721906428888),
+    (-35.46764651517933, -69.57737240456761),
+    (-35.46761649309932, -69.5759568599952),
+    (-35.46756355662158, -69.57341267990935),
+    (-35.46753178131413, -69.57224349438995),
+    (-35.46837993738643, -69.57198745833407),
+    (-35.46893739593073, -69.57172257903295),
+    (-35.46912611146244, -69.57036092765886),
+    (-35.46920773755725, -69.56846211087797),
+    (-35.47012176367126, -69.56763305227337),
 ]
 
-# Segmentos del recorrido (líneas)
+# Construcción de puntos y segmentos
+puntos = [{"label": f"Punto {i+1}", "lat": lat, "lon": lon} for i, (lat, lon) in enumerate(coordenadas)]
+
 segmentos = []
-for i in range(len(puntos)-1):
+for i in range(len(puntos) - 1):
     segmentos.append({
         "coordinates": [
             [puntos[i]["lon"], puntos[i]["lat"]],
-            [puntos[i+1]["lon"], puntos[i+1]["lat"]]
+            [puntos[i + 1]["lon"], puntos[i + 1]["lat"]]
         ]
     })
 
 df_puntos = pd.DataFrame(puntos)
 df_lineas = pd.DataFrame(segmentos)
 
-# Capa de línea (trayectoria)
+# Capas de visualización
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_lineas,
@@ -37,7 +44,6 @@ line_layer = pdk.Layer(
     get_width=4,
 )
 
-# Capa de puntos
 point_layer = pdk.Layer(
     "ScatterplotLayer",
     data=df_puntos,
@@ -47,11 +53,11 @@ point_layer = pdk.Layer(
     pickable=True,
 )
 
-# Vista inicial centrada en el primer punto
+# Vista centrada en el primer punto
 view_state = pdk.ViewState(
-    latitude=puntos[0]["lat"],
-    longitude=puntos[0]["lon"],
-    zoom=13,
+    latitude=coordenadas[0][0],
+    longitude=coordenadas[0][1],
+    zoom=14,
     pitch=0,
 )
 
