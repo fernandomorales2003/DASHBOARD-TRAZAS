@@ -8,8 +8,10 @@ st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 # -------------------- Función Haversine --------------------
 def haversine(coord1, coord2):
     R = 6371000  # metros
-    lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
-    lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
+    lat1, lon1 = math.radians(coord1[0])
+    lon1 = math.radians(coord1[1])
+    lat2 = math.radians(coord2[0])
+    lon2 = math.radians(coord2[1])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
@@ -48,20 +50,25 @@ for i in range(len(coordenadas)):
 
 dist_total = round(acumulada, 1)
 
-# -------------------- Entrada del usuario --------------------
+# -------------------- Título y distancia total --------------------
 st.title("Recorrido de fibra óptica – TR-S-DER-02")
-st.write(f"Distancia total del enlace: **{dist_total} m**")
+st.markdown(f"💡 **Distancia total del enlace:** `{dist_total} metros`")
 
-corte_metros = st.number_input(
-    "Ingresá la distancia (en metros) donde se detecta un corte de fibra:",
-    min_value=0.0,
-    max_value=dist_total,
-    step=10.0,
-    value=0.0,
-    help="El valor no puede superar la distancia total del enlace."
-)
+# -------------------- Checkbox para mostrar campo de corte --------------------
+corte_activo = st.checkbox("Informar corte de fibra óptica")
 
-st.info(f"Distancia ingresada para el corte: {corte_metros} m")
+if corte_activo:
+    corte_metros = st.number_input(
+        "Ingresá la distancia (en metros) donde se detecta un corte:",
+        min_value=0.0,
+        max_value=dist_total,
+        step=10.0,
+        value=0.0,
+        help="El valor no puede superar la distancia total del enlace."
+    )
+    st.info(f"Distancia ingresada para el corte: {corte_metros} m")
+else:
+    corte_metros = 0.0  # Si no hay corte, toda la traza es azul
 
 # -------------------- Crear DataFrame de puntos --------------------
 puntos = [{
@@ -73,7 +80,7 @@ puntos = [{
 
 df_puntos = pd.DataFrame(puntos)
 
-# -------------------- Construcción de segmentos por colores --------------------
+# -------------------- Construcción de segmentos --------------------
 segmentos_azul = []
 segmentos_rojo = []
 acumulada = 0
@@ -87,13 +94,10 @@ for i in range(len(coordenadas) - 1):
     elif acumulada >= corte_metros:
         segmentos_rojo.append({"coordinates": [[p1[1], p1[0]], [p2[1], p2[0]]]})
     else:
-        # Dividir el segmento en 2 partes si el corte está dentro de este tramo
         ratio = (corte_metros - acumulada) / d
         lat_cut = p1[0] + ratio * (p2[0] - p1[0])
         lon_cut = p1[1] + ratio * (p2[1] - p1[1])
-        # Azul hasta el punto de corte
         segmentos_azul.append({"coordinates": [[p1[1], p1[0]], [lon_cut, lat_cut]]})
-        # Rojo después del punto de corte
         segmentos_rojo.append({"coordinates": [[lon_cut, lat_cut], [p2[1], p2[0]]]})
     acumulada += d
 
@@ -124,7 +128,7 @@ puntos_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=4.5,  # 50% más grande
+    get_radius=4.5,
     pickable=True,
 )
 
@@ -140,7 +144,7 @@ tooltip = {
     "style": {"backgroundColor": "white"}
 }
 
-# -------------------- Render del Mapa --------------------
+# -------------------- Mostrar el Mapa --------------------
 st.pydeck_chart(pdk.Deck(
     layers=[linea_azul, linea_roja, puntos_layer],
     initial_view_state=view_state,
