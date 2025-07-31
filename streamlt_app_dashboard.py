@@ -4,22 +4,20 @@ import pydeck as pdk
 
 st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
 
-# Coordenadas reales extraídas desde el KMZ (lat, lon)
+# Coordenadas reales corregidas del KMZ
 coordenadas = [
-    (-35.4708633166351, -69.57766819274954),
+    (-35.4708633166351,  -69.57766819274954),
     (-35.47083740176508, -69.57721906428888),
     (-35.46764651517933, -69.57737240456761),
     (-35.46761649309932, -69.5759568599952),
     (-35.46756355662158, -69.57341267990935),
-    (-35.46753178131413, -69.57224349438995),
-    (-35.46837993738643, -69.57198745833407),
-    (-35.46893739593073, -69.57172257903295),
-    (-35.46912611146244, -69.57036092765886),
-    (-35.46920773755725, -69.56846211087797),
-    (-35.47012176367126, -69.56763305227337),
+    (-35.47194972736314, -69.57318668647875),
+    (-35.47188945240595, -69.57254924372452),
+    (-35.47297521564813, -69.5724348810358),
+    (-35.47299678040343, -69.57282559280863),
 ]
 
-# Construcción de puntos y segmentos
+# Armar puntos y segmentos
 puntos = [{"label": f"Punto {i+1}", "lat": lat, "lon": lon} for i, (lat, lon) in enumerate(coordenadas)]
 
 segmentos = []
@@ -34,7 +32,7 @@ for i in range(len(puntos) - 1):
 df_puntos = pd.DataFrame(puntos)
 df_lineas = pd.DataFrame(segmentos)
 
-# Capas de visualización
+# Capas para pydeck
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_lineas,
@@ -49,11 +47,11 @@ point_layer = pdk.Layer(
     data=df_puntos,
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=60,
+    get_radius=20,  # achicamos el radio de los puntos
     pickable=True,
 )
 
-# Vista centrada en el primer punto
+# Vista inicial centrada
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -63,6 +61,7 @@ view_state = pdk.ViewState(
 
 tooltip = {"html": "<b>{label}</b>", "style": {"backgroundColor": "white"}}
 
+# Mostrar en Streamlit
 st.title("Recorrido de fibra óptica – TR-S-DER-02")
 st.pydeck_chart(pdk.Deck(
     layers=[line_layer, point_layer],
