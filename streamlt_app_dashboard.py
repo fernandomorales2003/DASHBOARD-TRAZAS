@@ -3,71 +3,62 @@ import pandas as pd
 import pydeck as pdk
 import math
 
-st.set_page_config(page_title="Recorrido de Fibra Óptica", layout="wide")
+st.set_page_config(page_title="Recorrido de Fibra", layout="wide")
 
-# Función de distancia Haversine
+# ---------- Funciones ----------
 def haversine(coord1, coord2):
     R = 6371000  # metros
-    lat1, lon1 = coord1
-    lat2, lon2 = coord2
-    lat1 = math.radians(lat1)
-    lon1 = math.radians(lon1)
-    lat2 = math.radians(lat2)
-    lon2 = math.radians(lon2)
+    lat1, lon1 = math.radians(coord1[0])
+    lon1 = math.radians(coord1[1])
+    lat2, lon2 = math.radians(coord2[0])
+    lon2 = math.radians(coord2[1])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
-# Datos TR-S-DER-02
-coordenadas_der = [
-    (-35.4708633166351,  -69.57766819274954),
-    (-35.47083740176508, -69.57721906428888),
-    (-35.46764651517933, -69.57737240456761),
-    (-35.46761649309932, -69.5759568599952),
-    (-35.46756355662158, -69.57341267990935),
-    (-35.47194972736314, -69.57318668647875),
-    (-35.47188945240595, -69.57254924372452),
-    (-35.47297521564813, -69.5724348810358),
-    (-35.47299678040343, -69.57282559280863),
-]
-nombres_der = [
-    "DATACENTER", "FOSC 01", "FOSC 02",
-    "HUB 1.1", "HUB 1.2", "HUB 2.1",
-    "HUB 2.2", "HUB 3.1", "HUB 3.2"
-]
+def generar_traza(nombre):
+    if nombre == "TR-S-DER-02":
+        coords = [
+            (-33.085064, -68.46635),
+            (-33.084365, -68.467158),
+            (-33.083632, -68.467997),
+            (-33.082891, -68.468815),
+            (-33.082170, -68.469633),
+            (-33.081450, -68.470452),
+            (-33.080780, -68.471240)
+        ]
+        nombres = [
+            "DATACENTER", "FUSIÓN 1", "FUSIÓN 2", "FUSIÓN 3",
+            "FUSIÓN 4", "FUSIÓN 5", "OLT 1"
+        ]
+    else:  # TR1-SUR
+        coords = [
+            (-35.470812, -69.577695),
+            (-35.470874, -69.577691),
+            (-35.470914, -69.578495),
+            (-35.473146, -69.578359),
+            (-35.474385, -69.578319),
+            (-35.474353, -69.577005),
+            (-35.476546, -69.576911),
+            (-35.476760, -69.585089),
+            (-35.497015, -69.585443),
+            (-35.497223, -69.581949),
+            (-35.501802, -69.582158),
+            (-35.501746, -69.582981)
+        ]
+        nombres = [
+            "DATACENTER", "FOSC 01", "FOSC 02", "FOSC 03", "FOSC 04", "FOSC 05",
+            "FOSC 06", "FOSC 07", "FOSC 08", "FOSC 09", "FOSC 10", "TORRE WISP"
+        ]
+    return coords, nombres
 
-# Datos TR1-SUR
-coordenadas_sur = [
-    (-35.470812, -69.577695),
-    (-35.470874, -69.577691),
-    (-35.470914, -69.578495),
-    (-35.473146, -69.578359),
-    (-35.474385, -69.578319),
-    (-35.474353, -69.577005),
-    (-35.476546, -69.576911),
-    (-35.476760, -69.585089),
-    (-35.497015, -69.585443),
-    (-35.497223, -69.581949),
-    (-35.501802, -69.582158),
-    (-35.501746, -69.582981)
-]
-nombres_sur = [
-    "DATACENTER", "FOSC 01", "FOSC 02", "FOSC 03",
-    "FOSC 04", "FOSC 05", "FOSC 06", "FOSC 07",
-    "FOSC 08", "FOSC 09", "FOSC 10", "TORRE WISP"
-]
+# ---------- Barra lateral ----------
+st.sidebar.title("Configuración de Traza")
+traza_seleccionada = st.sidebar.selectbox("Seleccionar traza", ["TR-S-DER-02", "TR1-SUR"])
 
-# Selector de traza
-traza = st.sidebar.radio("SELECCIONA ENLACE:", ["TR-S-DER-02", "TR1-SUR"])
-
-if traza == "TR-S-DER-02":
-    coordenadas = coordenadas_der
-    nombres = nombres_der
-else:
-    coordenadas = coordenadas_sur
-    nombres = nombres_sur
+coordenadas, nombres = generar_traza(traza_seleccionada)
 
 # Calcular distancias acumuladas
 distancias = []
@@ -81,21 +72,21 @@ for i in range(len(coordenadas)):
         distancias.append(round(acumulada, 1))
 
 distancia_total = distancias[-1]
-st.markdown(f"### Distancia total del enlace: `{distancia_total:.1f} m`")
+st.sidebar.markdown(f"**Distancia total:** `{distancia_total:.1f} m`")
 
-# Activar corte
-corte_activo = st.checkbox("Informar CORTE DE FIBRA")
+# Corte de fibra
+corte_activo = st.sidebar.checkbox("Informar CORTE DE FIBRA")
 distancia_corte = 0
 if corte_activo:
-    distancia_corte = st.number_input(
-        "Ingresá la distancia (en metros) donde se detecta un corte de fibra:",
+    distancia_corte = st.sidebar.number_input(
+        "Ingresá la distancia (en metros) del corte:",
         min_value=0.0,
         max_value=distancia_total,
         value=0.0,
-        step=1.0,
+        step=1.0
     )
 
-# Construir puntos
+# ---------- Construcción de datos ----------
 puntos = [{
     "label": nombres[i],
     "lat": lat,
@@ -104,13 +95,16 @@ puntos = [{
     "dist_str": f"{distancias[i]} m"
 } for i, (lat, lon) in enumerate(coordenadas)]
 
-# Segmentos con color por corte
 segmentos = []
+corte_marcado = None
+
 for i in range(len(puntos) - 1):
     d_inicio = puntos[i]["dist"]
     d_fin = puntos[i+1]["dist"]
+    color = [0, 200, 255]  # Azul por defecto
 
     if corte_activo and d_inicio < distancia_corte < d_fin:
+        # Interpolación
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
         lon_interp = puntos[i]["lon"] + ratio * (puntos[i+1]["lon"] - puntos[i]["lon"])
@@ -130,11 +124,14 @@ for i in range(len(puntos) - 1):
             "color": [255, 0, 0]
         })
 
+        corte_marcado = {
+            "lat": lat_interp,
+            "lon": lon_interp,
+            "label": "Corte detectado a posición GPS"
+        }
     else:
-        color = [0, 200, 255]
         if corte_activo and d_inicio >= distancia_corte:
-            color = [255, 0, 0]
-
+            color = [255, 0, 0]  # Rojo
         segmentos.append({
             "coordinates": [
                 [puntos[i]["lon"], puntos[i]["lat"]],
@@ -143,34 +140,48 @@ for i in range(len(puntos) - 1):
             "color": color
         })
 
-# Dataframes para Pydeck
+# ---------- DataFrames ----------
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 
-# Capas
-line_layer = pdk.Layer(
-    "LineLayer",
-    data=df_segmentos,
-    get_source_position="coordinates[0]",
-    get_target_position="coordinates[1]",
-    get_color="color",
-    get_width=4,
-)
+layers = [
+    pdk.Layer(
+        "LineLayer",
+        data=df_segmentos,
+        get_source_position="coordinates[0]",
+        get_target_position="coordinates[1]",
+        get_color="color",
+        get_width=4,
+    ),
+    pdk.Layer(
+        "ScatterplotLayer",
+        data=df_puntos,
+        get_position='[lon, lat]',
+        get_color=[255, 0, 0],
+        get_radius=5,
+        pickable=True,
+    )
+]
 
-point_layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_puntos,
-    get_position='[lon, lat]',
-    get_color=[255, 0, 0],
-    get_radius=4.5,
-    pickable=True,
-)
+# Agregar punto de corte si existe
+if corte_marcado:
+    df_corte = pd.DataFrame([corte_marcado])
+    layers.append(
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=df_corte,
+            get_position='[lon, lat]',
+            get_color=[255, 255, 0],  # Amarillo
+            get_radius=8,
+            pickable=True,
+        )
+    )
 
-# Vista inicial
+# ---------- Visualización ----------
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
-    zoom=15,
+    zoom=13,
     pitch=0,
 )
 
@@ -180,7 +191,7 @@ tooltip = {
 }
 
 st.pydeck_chart(pdk.Deck(
-    layers=[line_layer, point_layer],
+    layers=layers,
     initial_view_state=view_state,
     tooltip=tooltip
 ))
