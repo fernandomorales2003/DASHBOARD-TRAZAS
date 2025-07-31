@@ -1,63 +1,93 @@
+# fiber_map_kml.py
+
 import streamlit as st
+import zipfile
+from fastkml import kml
+from shapely.geometry import LineString, Point
 import pandas as pd
 import pydeck as pdk
+import os
 
-st.set_page_config(page_title="Fiber Route Mendoza", layout="wide")
+st.set_page_config(page_title="Recorrido de Fibra desde KML", layout="wide")
+st.title("Visualización de Recorrido de Fibra Óptica desde archivo KMZ")
 
-# Coordenadas reales del centro sobre Av. San Martín
-lat0 = -33.085064
-lon0 = -68.46635
+uploaded_file = st.file_uploader("Subí el archivo KMZ (KML comprimido)", type=["kmz"])
 
-# Creamos puntos: DATACENTER, FUSIONES cada ~2 km, y OLT1 final
-labels = ["DATACENTER", "FUSIÓN 1", "FUSIÓN 2", "FUSIÓN 3", "OLT1"]
-puntos = []
+if uploaded_file:
+    # Guardar archivo
+    kmz_path = "temp.kmz"
+    kml_path = "ruta.kml"
 
-# Los 3 primeros puntos sobre Av. San Martín hacia norte (~0.018° lat ≈ 2 km)
-for i in range(3):
-    puntos.append({
-        "lat": lat0 + i * 0.018,
-        "lon": lon0,
-        "label": labels[i]
-    })
+    with open(kmz_path, "wb") as f:
+        f.write(uploaded_file.read())
 
-# Luego giramos este (~2 km ≈ 0.018° longitud positiva), hasta completar 8 km total
-for j in range(3,5):
-    puntos.append({
-        "lat": puntos[2]["lat"],
-        "lon": lon0 + (j-2) * 0.018,
-        "label": labels[j]
-    })
+    # Extraer el KML del KMZ
+    with zipfile.ZipFile(kmz_path, 'r') as kmz:
+        for file in kmz.namelist():
+            if file.endswith(".kml"):
+                kmz.extract(file, path=".")
+                os.rename(file, kml_path)
+                break
 
-df_puntos = pd.DataFrame(puntos)
+    # Leer el archivo KML
+    with open(kml_path, "r", encoding="utf-8") as f:
+        doc = f.read()
 
-# Construimos segmentos del recorrido
-segmentos = []
-for i in range(len(puntos)-1):
-    segmentos.append({"coordinates": [
-        [puntos[i]["lon"], puntos[i]["lat"]],
-        [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-    ]})
-df_lineas = pd.DataFrame(segmentos)
+    # Parsear el KML
+    k = kml.KML()
+    k.from_string(doc)
+    features = list(k.features())
+    placemarks = list(features[0].features())
 
-# LineLayer y PointLayer
-line_layer = pdk.Layer(
-    "LineLayer", data=df_lineas,
-    get_source_position="coordinates[0]",
-    get_target_position="coordinates[1]",
-    get_color=[0, 200, 255], get_width=4)
+    puntos = []
+    lineas = []
 
-point_layer = pdk.Layer(
-    "ScatterplotLayer", data=df_puntos,
-    get_position='[lon, lat]', get_color=[255, 0, 0],
-    get_radius=50, pickable=True)
+    for pm in placemarks:
+        geom = pm.geometry
+        if isinstance(geom, Point):
+            puntos.append({
+                "label": pm.name,
+                "lat": geom.y,
+                "lon": geom.x
+            })
+        elif isinstance(geom, LineString):
+            coords = list(geom.coords)
+            for i in range(len(coords) - 1):
+                lineas.append({"coordinates": [list(coords[i]), list(coords[i+1])]})
 
-view_state = pdk.ViewState(
-    latitude=lat0 + 0.018*1.5, longitude=lon0 + 0.018*0.5,
-    zoom=12.5, pitch=0)
 
-tooltip = {"html": "<b>{label}</b>", "style": {"backgroundColor": "white"}}
+    df_puntos = pd.DataFrame(puntos)
+    df_lineas = pd.DataFrame(lineas)
 
-st.title("Simulación de recorrido de fibra sobre calles reales en Mendoza")
-st.pydeck_chart(pdk.Deck(layers=[line_layer, point_layer],
-                         initial_view_state=view_state,
-                         tooltip=tooltip))
+    # Mapa
+    point_layer = pdk.Layer(
+        "ScatterplotLayer", data=df_puntos,
+        get_position='[lon, lat]', get_color=[255, 0, 0],
+        get_radius=50, pickable=True
+    )
+
+    line_layer = pdk.Layer(
+        "LineLayer", data=df_lineas,
+        get_source_position="coordinates[0]",
+        get_target_position="coordinates[1]",
+        get_color=[0, 200, 255], get_width=4
+    )
+
+    if not df_puntos.empty:
+        center_lat = df_puntos["lat"].mean()
+        center_lon = df_puntos["lon"].mean()
+    else:
+        center_lat = center_lon = 0
+
+    view_state = pdk.ViewState(
+        latitude=center_lat, longitude=center_lon,
+        zoom=13, pitch=0
+    )
+
+    tooltip = {"html": "<b>{label}</b>", "style": {"backgroundColor": "white"}}
+
+    st.pydeck_chart(pdk.Deck(
+        layers=[line_layer, point_layer],
+        initial_view_state=view_state,
+        tooltip=tooltip
+    ))
