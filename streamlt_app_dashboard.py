@@ -60,7 +60,7 @@ nombres_sur = [
 ]
 
 # Selector de traza
-traza = st.selectbox("Seleccioná la traza:", ["TR-S-DER-02", "TR1-SUR"])
+traza = st.sidebar.radio("📡 Seleccionar trazado:", ["TR-S-DER-02", "TR1-SUR"])
 
 if traza == "TR-S-DER-02":
     coordenadas = coordenadas_der
