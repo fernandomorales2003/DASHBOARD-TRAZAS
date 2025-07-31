@@ -105,7 +105,6 @@ for i in range(len(puntos) - 1):
     color = color_base
 
     if d_inicio < distancia_corte < d_fin:
-        # Interpolar coordenadas para el punto de corte
         ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
         lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
         lon_interp = puntos[i]["lon"] + ratio * (puntos[i+1]["lon"] - puntos[i]["lon"])
@@ -142,12 +141,10 @@ for i in range(len(puntos) - 1):
             "color": color
         })
 
-# --- DataFrames para Pydeck
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 df_corte = pd.DataFrame([marcador_corte]) if marcador_corte else pd.DataFrame()
 
-# --- Capas del Mapa
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_segmentos,
@@ -175,7 +172,6 @@ corte_layer = pdk.Layer(
     pickable=True
 ) if not df_corte.empty else None
 
-# --- Mapa y vista
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
