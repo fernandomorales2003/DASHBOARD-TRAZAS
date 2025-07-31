@@ -6,3 +6,4 @@ fpdf
 Pillow
 requests
 plotly
+pydeck
