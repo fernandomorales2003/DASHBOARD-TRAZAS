@@ -103,7 +103,7 @@ for i in range(len(puntos) - 1):
             "color": [255, 0, 0]
         })
     else:
-        if d_inicio >= distancia_corte:
+        if d_inicio > distancia_corte:
             color = [255, 0, 0]  # Rojo
         segmentos.append({
             "coordinates": [
