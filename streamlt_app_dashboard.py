@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
@@ -25,14 +24,20 @@ def haversine(coord1, coord2):
 trazas = {
     "TR-S-DER-02": {
         "coordenadas": [
-            (-32.925539, -68.857414), (-32.926744, -68.857481),
-            (-32.928124, -68.857580), (-32.929415, -68.857657),
-            (-32.930814, -68.857738), (-32.932139, -68.857819),
-            (-32.933444, -68.857885), (-32.934757, -68.857960)
+            (-35.4708633166351,  -69.57766819274954),
+            (-35.47083740176508, -69.57721906428888),
+            (-35.46764651517933, -69.57737240456761),
+            (-35.46761649309932, -69.5759568599952),
+            (-35.46756355662158, -69.57341267990935),
+            (-35.47194972736314, -69.57318668647875),
+            (-35.47188945240595, -69.57254924372452),
+            (-35.47297521564813, -69.5724348810358),
+            (-35.47299678040343, -69.57282559280863)
         ],
         "nombres": [
-            "DATACENTER", "FUSIÓN 1", "FUSIÓN 2", "FUSIÓN 3",
-            "FUSIÓN 4", "FUSIÓN 5", "FUSIÓN 6", "FUSIÓN 7"
+            "DATACENTER", "FOSC 01", "FOSC 02",
+            "HUB 1.1", "HUB 1.2", "HUB 2.1",
+            "HUB 2.2", "HUB 3.1", "HUB 3.2"
         ],
         "color_base": [0, 200, 255]
     },
@@ -141,10 +146,12 @@ for i in range(len(puntos) - 1):
             "color": color
         })
 
+# --- DataFrames para Pydeck
 df_puntos = pd.DataFrame(puntos)
 df_segmentos = pd.DataFrame(segmentos)
 df_corte = pd.DataFrame([marcador_corte]) if marcador_corte else pd.DataFrame()
 
+# --- Capas del Mapa
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_segmentos,
@@ -172,6 +179,7 @@ corte_layer = pdk.Layer(
     pickable=True
 ) if not df_corte.empty else None
 
+# --- Mapa y vista
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
