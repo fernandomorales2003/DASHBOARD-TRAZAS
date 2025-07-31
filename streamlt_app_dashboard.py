@@ -1,71 +1,72 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
-import math
 
-st.set_page_config(page_title="Recorrido Fibra TR-S-DER-02", layout="wide")
+st.set_page_config(page_title="Ruta de Fibra - TR-S-DER-02", layout="wide")
 
-# Función para calcular distancia entre coordenadas (Haversine)
-def haversine(coord1, coord2):
-    R = 6371000  # metros
-    lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])
-    lat2, lon2 = math.radians(coord2[0]), math.radians(coord2[1])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    return R * c
-
-# Coordenadas corregidas desde el KMZ
+# Coordenadas extraídas del KMZ
 coordenadas = [
-    (-35.4708633166351,  -69.57766819274954),
-    (-35.47083740176508, -69.57721906428888),
-    (-35.46764651517933, -69.57737240456761),
-    (-35.46761649309932, -69.5759568599952),
-    (-35.46756355662158, -69.57341267990935),
-    (-35.47194972736314, -69.57318668647875),
-    (-35.47188945240595, -69.57254924372452),
-    (-35.47297521564813, -69.5724348810358),
-    (-35.47299678040343, -69.57282559280863),
+    (-35.473805, -69.584011),
+    (-35.473657, -69.583697),
+    (-35.470261, -69.577935),
+    (-35.469419, -69.576504),
+    (-35.467605, -69.573353),
+    (-35.462728, -69.56498),
+    (-35.462174, -69.564131),
+    (-35.460918, -69.562169),
+    (-35.460465, -69.561451),
 ]
 
-# Nombres personalizados
 nombres = [
-    "DATACENTER", "FOSC 01", "FOSC 02",
-    "HUB 1.1", "HUB 1.2", "HUB 2.1",
-    "HUB 2.2", "HUB 3.1", "HUB 3.2"
+    "DATACENTER",
+    "FOSC 01",
+    "FOSC 02",
+    "HUB 1.1",
+    "HUB 1.2",
+    "HUB 2.1",
+    "HUB 2.2",
+    "HUB 3.1",
+    "HUB 3.2",
 ]
 
-# Distancias acumuladas
-distancias = []
-acumulada = 0
-for i in range(len(coordenadas)):
-    if i == 0:
-        distancias.append(0)
-    else:
-        d = haversine(coordenadas[i - 1], coordenadas[i])
-        acumulada += d
-        distancias.append(round(acumulada, 1))
+# Calcular distancias acumuladas
+from geopy.distance import geodesic
+distancias = [0]
+acum = 0
+for i in range(1, len(coordenadas)):
+    d = geodesic(coordenadas[i-1], coordenadas[i]).meters
+    acum += d
+    distancias.append(round(acum, 1))
 
 # DataFrame de puntos
-puntos = [{
-    "label": nombres[i],
-    "lat": lat,
-    "lon": lon,
-    "dist": f"{distancias[i]} m"
-} for i, (lat, lon) in enumerate(coordenadas)]
+df_puntos = pd.DataFrame({
+    "lat": [lat for lat, lon in coordenadas],
+    "lon": [lon for lat, lon in coordenadas],
+    "label": nombres,
+    "distancia": distancias
+})
 
-segmentos = [{
-    "coordinates": [
-        [puntos[i]["lon"], puntos[i]["lat"]],
-        [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-    ]
-} for i in range(len(puntos) - 1)]
+# Icono personalizado solo para DATACENTER
+df_puntos["icon_data"] = None
+df_puntos.loc[0, "icon_data"] = {
+    "url": "https://cdn-icons-png.flaticon.com/512/900/900797.png",
+    "width": 128,
+    "height": 128,
+    "anchorY": 128
+}
 
-df_puntos = pd.DataFrame(puntos)
+# Segmentos de línea entre los puntos
+segmentos = []
+for i in range(len(coordenadas) - 1):
+    segmentos.append({
+        "coordinates": [
+            [coordenadas[i][1], coordenadas[i][0]],
+            [coordenadas[i+1][1], coordenadas[i+1][0]]
+        ]
+    })
 df_lineas = pd.DataFrame(segmentos)
 
-# Capas de pydeck
+# Capas
 line_layer = pdk.Layer(
     "LineLayer",
     data=df_lineas,
@@ -75,30 +76,43 @@ line_layer = pdk.Layer(
     get_width=4,
 )
 
-point_layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_puntos,
+icon_layer = pdk.Layer(
+    "IconLayer",
+    data=df_puntos[df_puntos["icon_data"].notnull()],
+    get_icon="icon_data",
     get_position='[lon, lat]',
-    get_color=[255, 0, 0],
-    get_radius=3,  # aumentado 50%
+    get_size=4,
+    size_scale=10,
     pickable=True,
 )
 
+scatter_layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=df_puntos[1:],  # Excluye DATACENTER
+    get_position='[lon, lat]',
+    get_color=[255, 0, 0],
+    get_radius=75,  # Agrandado 50%
+    pickable=True,
+)
+
+# Vista inicial más cercana
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
     zoom=15.5,
-    pitch=0,
+    pitch=0
 )
 
+# Tooltip con información
 tooltip = {
-    "html": "<b>{label}</b><br/>Distancia: {dist}",
-    "style": {"backgroundColor": "white"}
+    "html": "<b>{label}</b><br/>Distancia desde inicio: {distancia} m",
+    "style": {"backgroundColor": "white", "color": "black"}
 }
 
-st.title("Recorrido de fibra óptica – TR-S-DER-02")
+# Render
+st.title("Recorrido de Fibra - TR-S-DER-02")
 st.pydeck_chart(pdk.Deck(
-    layers=[line_layer, point_layer],
+    layers=[line_layer, icon_layer, scatter_layer],
     initial_view_state=view_state,
     tooltip=tooltip
 ))
