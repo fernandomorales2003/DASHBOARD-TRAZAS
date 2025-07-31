@@ -224,3 +224,4 @@ with col2:
     c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
     c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
     c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
+
