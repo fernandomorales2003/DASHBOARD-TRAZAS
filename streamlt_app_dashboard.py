@@ -54,16 +54,16 @@ df_puntos = pd.DataFrame({
     "lat": [lat for lat, lon in coordenadas],
     "lon": [lon for lat, lon in coordenadas],
     "label": nombres,
-    "distancia": distancias
+    "distancia": distancias,
 })
 
-# Icono personalizado solo para DATACENTER
+# Inicializamos columna icon_data como None (tipo object)
 df_puntos["icon_data"] = None
-df_puntos.loc[0, "icon_data"] = {
+df_puntos.at[0, "icon_data"] = {
     "url": "https://cdn-icons-png.flaticon.com/512/900/900797.png",
     "width": 128,
     "height": 128,
-    "anchorY": 128
+    "anchorY": 128,
 }
 
 # Segmentos de línea entre los puntos
@@ -102,11 +102,11 @@ scatter_layer = pdk.Layer(
     data=df_puntos[1:],  # Excluye DATACENTER
     get_position='[lon, lat]',
     get_color=[255, 0, 0],
-    get_radius=110,  # 50% más grande que antes (75 → 110)
+    get_radius=110,  # 50% más grande
     pickable=True,
 )
 
-# Vista inicial con zoom más cercano
+# Vista inicial con más zoom
 view_state = pdk.ViewState(
     latitude=coordenadas[0][0],
     longitude=coordenadas[0][1],
@@ -127,3 +127,4 @@ st.pydeck_chart(pdk.Deck(
     initial_view_state=view_state,
     tooltip=tooltip
 ))
+
