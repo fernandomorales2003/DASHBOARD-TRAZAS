@@ -3,6 +3,7 @@ import pandas as pd
 import pydeck as pdk
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
+import os
 
 st.set_page_config(page_title="FTTH Malargüe", layout="wide")
 
@@ -43,74 +44,69 @@ def cargar_kmz(path):
 
     return lineas, puntos
 
-# Cambiar ruta si lo usás localmente
-kmz_path = "FTTH-MALARGUE.kmz"
-lineas, puntos = cargar_kmz(kmz_path)
-
-# ---------- VISUALIZACIÓN ----------
-
+# ---------- SUBIDA DEL KMZ (Streamlit Cloud) ----------
 st.title("🧭 Visualización de Red FTTH – Malargüe")
 
-# Centro del mapa
-lat_centro = pd.DataFrame(puntos)["lat"].mean()
-lon_centro = pd.DataFrame(puntos)["lon"].mean()
+subido = st.file_uploader("📁 Subí tu archivo KMZ", type=["kmz"])
+if subido:
+    with open("archivo.kmz", "wb") as f:
+        f.write(subido.read())
 
-view_state = pdk.ViewState(
-    latitude=lat_centro,
-    longitude=lon_centro,
-    zoom=14,
-    pitch=0,
-)
+    lineas, puntos = cargar_kmz("archivo.kmz")
 
-# Capas a visualizar
-layers = []
+    # Centro del mapa
+    lat_centro = pd.DataFrame(puntos)["lat"].mean()
+    lon_centro = pd.DataFrame(puntos)["lon"].mean()
 
-# --- CAPAS DE LÍNEAS ---
-st.sidebar.subheader("🟦 Trazas de fibra")
-
-for i, linea in enumerate(lineas):
-    nombre = linea["name"]
-    coords = linea["path"]
-
-    if st.sidebar.checkbox(f"🧵 {nombre}", value=True, key=f"line_{i}"):
-        df_coords = pd.DataFrame(coords)
-        color = [255, 0, 0] if "TRONCAL" in nombre.upper() else [0, 150, 255]
-        capa = pdk.Layer(
-            "LineLayer",
-            data=df_coords,
-            get_source_position="index",
-            get_target_position="index + 1",
-            get_position=lambda x: [df_coords.iloc[x]["lon"], df_coords.iloc[x]["lat"]],
-            get_color=color,
-            get_width=5,
-            pickable=True,
-            id=f"linea_{i}",
-        )
-        layers.append(capa)
-
-# --- CAPA DE PUNTOS ---
-st.sidebar.subheader("📍 Elementos interiores")
-
-if st.sidebar.checkbox("Mostrar puntos", value=True):
-    df_puntos = pd.DataFrame(puntos)
-    puntos_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df_puntos,
-        get_position='[lon, lat]',
-        get_color=[0, 200, 0],
-        get_radius=40,
-        pickable=True,
+    view_state = pdk.ViewState(
+        latitude=lat_centro,
+        longitude=lon_centro,
+        zoom=14,
+        pitch=0,
     )
-    layers.append(puntos_layer)
 
-tooltip = {
-    "html": "<b>{name}</b>",
-    "style": {"backgroundColor": "white", "color": "black"}
-}
+    # Capas visibles
+    layers = []
 
-st.pydeck_chart(pdk.Deck(
-    layers=layers,
-    initial_view_state=view_state,
-    tooltip=tooltip,
-    map_style="mapbox://styles/mapbox/light-v9"
-))
+    st.sidebar.subheader("🟦 Trazas de fibra")
+
+    for i, linea in enumerate(lineas):
+        nombre = linea["name"]
+        coords = linea["path"]
+
+        if st.sidebar.checkbox(f"🧵 {nombre}", value=True, key=f"line_{i}"):
+            df_coords = pd.DataFrame(coords)
+            capa = pdk.Layer(
+                "LineLayer",
+                data=df_coords,
+                get_source_position="[lon, lat]",
+                get_target_position="[lon, lat]",
+                get_color=[200, 0, 0] if "TRONCAL" in nombre.upper() else [0, 120, 255],
+                get_width=5,
+                id=f"linea_{i}",
+            )
+            layers.append(capa)
+
+    st.sidebar.subheader("📍 Elementos interiores")
+    if st.sidebar.checkbox("Mostrar puntos", value=True):
+        df_puntos = pd.DataFrame(puntos)
+        puntos_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=df_puntos,
+            get_position='[lon, lat]',
+            get_color=[0, 200, 0],
+            get_radius=40,
+            pickable=True,
+        )
+        layers.append(puntos_layer)
+
+    tooltip = {"html": "<b>{name}</b>", "style": {"backgroundColor": "white", "color": "black"}}
+
+    st.pydeck_chart(pdk.Deck(
+        layers=layers,
+        initial_view_state=view_state,
+        tooltip=tooltip,
+        map_style="mapbox://styles/mapbox/light-v9"
+    ))
+else:
+    st.warning("Por favor, subí un archivo KMZ para visualizar la red.")
