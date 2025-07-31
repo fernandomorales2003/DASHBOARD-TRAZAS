@@ -7,3 +7,5 @@ Pillow
 requests
 plotly
 pydeck
+fastkml
+shapely
