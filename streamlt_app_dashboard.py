@@ -132,7 +132,7 @@ with col2:
         icono, color = estado_icono_color(row.Estado)
         st.markdown(f"""
             <div style="background-color:{color};
-                        padding:8px 20px;
+                        padding:2px 10px;
                         border-radius:10px;
                         text-align:center;
                         color:white;
@@ -140,7 +140,7 @@ with col2:
                         width:100%;
                         height:auto;">
                 <h5 style="margin: 4px 0;">{row.Enlace}</h5>
-                <p style="font-size:18px; margin: 4px 0;">{icono} <strong>{row.Estado}</strong></p>
+                <p style="font-size:10px; margin: 4px 0;">{icono} <strong>{row.Estado}</strong></p>
             </div>
         """, unsafe_allow_html=True)
 
