@@ -144,7 +144,7 @@ for i in range(len(puntos) - 1):
     "lon": lon_interp,
     "label": "CORTE DETECTADO A POSICIÓN GPS",
     "dist_str": f"{distancia_corte:.1f} m"
-    }
+}
 
     else:
         if distancia_corte and d_inicio >= distancia_corte:
