@@ -139,12 +139,11 @@ for i in range(len(puntos) - 1):
             "color": [255, 0, 0]
         })
 
-      marcador_corte = {
-    "lat": lat_interp,
-    "lon": lon_interp,
-    "label": "CORTE DETECTADO A POSICIÓN GPS",
-    "dist_str": f"{distancia_corte:.1f} m"
-}
+        marcador_corte = {
+            "lat": lat_interp,
+            "lon": lon_interp,
+            "label": "CORTE DETECTADO A POSICIÓN GPS"
+        }
 
     else:
         if distancia_corte and d_inicio >= distancia_corte:
