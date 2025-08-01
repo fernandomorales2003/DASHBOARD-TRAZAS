@@ -168,7 +168,7 @@ with col1:
     st.pyplot(fig)
 
 with col2:
-    st.subheader("📊 Atenuación Certificada vs Actual")
+    st.subheader("📊 AT Certificada vs Actual")
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Certificada"], name="Certificada", marker_color="#00cc83"))
     fig.add_trace(go.Bar(x=df["Enlace"], y=df["Atenuación Actual"], name="Actual", marker_color="#16865e"))
