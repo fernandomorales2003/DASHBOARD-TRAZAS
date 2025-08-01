@@ -5,6 +5,7 @@ import math
 import zipfile
 import xml.etree.ElementTree as ET
 import plotly.graph_objects as go
+import os
 
 # --- Funciones auxiliares ---
 def haversine(coord1, coord2):
@@ -17,6 +18,8 @@ def haversine(coord1, coord2):
     return 6371 * c * 1000
 
 def extraer_coords_kmz(kmz_path):
+    if not os.path.exists(kmz_path):
+        return []
     with zipfile.ZipFile(kmz_path, 'r') as kmz:
         kml_str = kmz.read('doc.kml').decode('utf-8')
     root = ET.fromstring(kml_str)
@@ -88,18 +91,17 @@ st.title("📍 Mapa de trazas de fibra ")
 # --- Barra lateral ---
 traza = st.sidebar.selectbox("Seleccionar traza", ["TR-S-DER-02", "TR1-SUR"])
 corte_activo = st.sidebar.checkbox("Informar corte")
-
 if corte_activo:
     distancia_corte = st.sidebar.number_input("Distancia del corte (m)", min_value=0.0)
 else:
     distancia_corte = 0
 
-# --- Generación de datos ---
+# --- Datos y coordenadas ---
 df_puntos, df_lineas, distancia_total, coordenadas = generar_dataframe(traza)
 distancias = df_puntos['dist'].tolist()
 nombres = df_puntos['nombre'].tolist()
 
-# --- Clientes por HUB (solo para TR-S-DER-02) ---
+# --- Clientes por HUB ---
 clientes_por_hub = {
     "HUB 1.1": 38, "HUB 1.2": 60,
     "HUB 2.1": 50, "HUB 2.2": 43,
@@ -110,9 +112,9 @@ clientes_por_hub = {
 colores = []
 for _, row in df_lineas.iterrows():
     if corte_activo and row["dist_acum"] > distancia_corte:
-        colores.append([255, 0, 0])  # rojo
+        colores.append([255, 0, 0])
     else:
-        colores.append([0, 128, 255])  # azul
+        colores.append([0, 128, 255])
 
 layer_lineas = pdk.Layer(
     "LineLayer",
@@ -133,12 +135,11 @@ layer_puntos = pdk.Layer(
     pickable=True
 )
 
-# Marcador de corte
-if corte_activo and distancia_corte > 0 and distancia_corte < distancia_total:
+layer_corte = None
+if corte_activo and 0 < distancia_corte < distancia_total:
     for i in range(1, len(distancias)):
         if distancias[i] >= distancia_corte:
-            ratio = ((distancia_corte - distancias[i - 1]) /
-                     (distancias[i] - distancias[i - 1]))
+            ratio = ((distancia_corte - distancias[i - 1]) / (distancias[i] - distancias[i - 1]))
             lat_corte = coordenadas[i - 1][0] + ratio * (coordenadas[i][0] - coordenadas[i - 1][0])
             lon_corte = coordenadas[i - 1][1] + ratio * (coordenadas[i][1] - coordenadas[i - 1][1])
             layer_corte = pdk.Layer(
@@ -150,8 +151,6 @@ if corte_activo and distancia_corte > 0 and distancia_corte < distancia_total:
                 pickable=True
             )
             break
-else:
-    layer_corte = None
 
 # --- Mapa ---
 st.pydeck_chart(pdk.Deck(
@@ -166,17 +165,37 @@ st.pydeck_chart(pdk.Deck(
     tooltip={"text": "{nombre}"}
 ))
 
-# --- Radar chart ---
+# --- Gráficos de clientes (solo para TR-S-DER-02) ---
 if traza == "TR-S-DER-02":
-    st.markdown("### Distribución de clientes por HUB")
-    labels = list(clientes_por_hub.keys())
-    values = list(clientes_por_hub.values())
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(r=values, theta=labels, fill='toself', name='Clientes'))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("### Distribución de clientes por HUB y Puerto PON")
+    col1, col2 = st.columns(2)
 
-    # Indicadores
+    with col1:
+        opcion = st.radio("Seleccionar visualización:", ["Radar Chart", "Barras por PON"])
+        if opcion == "Radar Chart":
+            labels = list(clientes_por_hub.keys())
+            values = list(clientes_por_hub.values())
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(r=values, theta=labels, fill='toself', name='Clientes'))
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=False)
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+    with col2:
+        pon1 = clientes_por_hub.get("HUB 1.1", 0) + clientes_por_hub.get("HUB 1.2", 0)
+        pon2 = clientes_por_hub.get("HUB 2.1", 0) + clientes_por_hub.get("HUB 2.2", 0)
+        pon3 = clientes_por_hub.get("HUB 3.1", 0) + clientes_por_hub.get("HUB 3.2", 0)
+        if opcion == "Barras por PON":
+            fig_bar = go.Figure(data=[
+                go.Bar(x=["PON1", "PON2", "PON3"], y=[pon1, pon2, pon3], marker_color='lightskyblue')
+            ])
+            fig_bar.update_layout(
+                xaxis_title="Puerto PON",
+                yaxis_title="Cantidad de Clientes",
+                showlegend=False
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Estado según corte
     if corte_activo and distancia_corte > 0:
         total_afectados = 0
         total_operativos = 0
@@ -191,18 +210,3 @@ if traza == "TR-S-DER-02":
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
         col2.metric("Clientes sin servicio", total_afectados)
-
-    # --- Gráfico de barras por PON ---
-    st.markdown("### Clientes por Puerto PON")
-    pon1 = clientes_por_hub.get("HUB 1.1", 0) + clientes_por_hub.get("HUB 1.2", 0)
-    pon2 = clientes_por_hub.get("HUB 2.1", 0) + clientes_por_hub.get("HUB 2.2", 0)
-
-    fig_bar = go.Figure(data=[
-        go.Bar(name='Clientes', x=["PON1", "PON2"], y=[pon1, pon2], marker_color='lightskyblue')
-    ])
-    fig_bar.update_layout(
-        xaxis_title="Puerto PON",
-        yaxis_title="Cantidad de Clientes",
-        showlegend=False
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
