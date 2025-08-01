@@ -140,12 +140,10 @@ for i in range(len(puntos) - 1):
         })
 
         marcador_corte = {
-    "lat": lat_interp,
-    "lon": lon_interp,
-    "label": "CORTE DETECTADO A POSICIÓN",
-    "dist_str": f"{distancia_corte:.1f} m"
-}
-
+            "lat": lat_interp,
+            "lon": lon_interp,
+            "label": "CORTE DETECTADO A POSICIÓN GPS"
+        }
 
     else:
         if distancia_corte and d_inicio >= distancia_corte:
@@ -299,4 +297,4 @@ if traza_seleccionada == "TR-S-DER-02":
         st.markdown("### Estado de clientes según el corte")
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
-        col2.metric("Clientes sin servicio", total_afectados)  
+        col2.metric("Clientes sin servicio", total_afectados)
