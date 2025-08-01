@@ -132,7 +132,7 @@ with col2:
         icono, color = estado_icono_color(row.Estado)
         st.markdown(f"""
             <div style="background-color:{color};
-                        padding:2px 10px;
+                        padding:2px 20px;
                         border-radius:10px;
                         text-align:center;
                         color:white;
