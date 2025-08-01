@@ -2,29 +2,37 @@ import streamlit as st
 import pandas as pd
 import pydeck as pdk
 import math
+import zipfile
+import xml.etree.ElementTree as ET
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Dashboard Recorridos de Fibra", layout="wide")
-
-# --- Función para calcular distancia entre coordenadas (Haversine)
+# --- Funciones auxiliares ---
 def haversine(coord1, coord2):
-    R = 6371000
-    lat1, lon1 = coord1
-    lat2, lon2 = coord2
-    lat1 = math.radians(lat1)
-    lon1 = math.radians(lon1)
-    lat2 = math.radians(lat2)
-    lon2 = math.radians(lon2)
+    lat1, lon1 = map(math.radians, coord1)
+    lat2, lon2 = map(math.radians, coord2)
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
+    return 6371 * c * 1000
 
-# --- Datos de las trazas
-trazas = {
-    "TR-S-DER-02": {
-        "coordenadas": [
+def extraer_coords_kmz(kmz_path):
+    with zipfile.ZipFile(kmz_path, 'r') as kmz:
+        kml_str = kmz.read('doc.kml').decode('utf-8')
+    root = ET.fromstring(kml_str)
+    namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
+    coords = root.findall('.//kml:LineString/kml:coordinates', namespace)
+    puntos = []
+    for coord in coords:
+        pares = coord.text.strip().split()
+        for par in pares:
+            lon, lat, *_ = map(float, par.split(','))
+            puntos.append((lat, lon))
+    return puntos
+
+def generar_dataframe(traza):
+    if traza == "TR-S-DER-02":
+        coordenadas = [
             (-35.4708633166351,  -69.57766819274954),
             (-35.47083740176508, -69.57721906428888),
             (-35.46764651517933, -69.57737240456761),
@@ -33,214 +41,142 @@ trazas = {
             (-35.47194972736314, -69.57318668647875),
             (-35.47188945240595, -69.57254924372452),
             (-35.47297521564813, -69.5724348810358),
-            (-35.47299678040343, -69.57282559280863)
-        ],
-        "nombres": [
+            (-35.47299678040343, -69.57282559280863),
+        ]
+        nombres = [
             "DATACENTER", "FOSC 01", "FOSC 02",
             "HUB 1.1", "HUB 1.2", "HUB 2.1",
             "HUB 2.2", "HUB 3.1", "HUB 3.2"
-        ],
-        "color_base": [0, 200, 255],
-        "clientes_hubs": {
-            "HUB 1.1": 38,
-            "HUB 1.2": 60,
-            "HUB 2.1": 50,
-            "HUB 2.2": 43,
-            "HUB 3.1": 35,
-            "HUB 3.2": 55
+        ]
+    else:
+        coordenadas = extraer_coords_kmz("TR1 SUR.kmz")
+        nombres = [
+            f"PUNTO {i+1} - " + nombre for i, nombre in enumerate([
+                "DATACENTER", "FOSC 01", "FOSC 02", "FOSC 03", "FOSC 04", "FOSC 05",
+                "FOSC 06", "FOSC 07", "FOSC 08", "FOSC 09", "FOSC 10", "TORRE WISP"])
+        ]
+
+    distancias = [0]
+    total = 0
+    for i in range(1, len(coordenadas)):
+        d = haversine(coordenadas[i - 1], coordenadas[i])
+        total += d
+        distancias.append(total)
+
+    df_puntos = pd.DataFrame({
+        "nombre": nombres,
+        "lat": [p[0] for p in coordenadas],
+        "lon": [p[1] for p in coordenadas],
+        "dist": distancias
+    })
+
+    df_lineas = pd.DataFrame([
+        {
+            "start_lat": coordenadas[i][0], "start_lon": coordenadas[i][1],
+            "end_lat": coordenadas[i + 1][0], "end_lon": coordenadas[i + 1][1],
+            "dist_acum": distancias[i + 1]
         }
-    },
-    "TR1-SUR": {
-        "coordenadas": [
-            (-35.470812, -69.577695), (-35.470874, -69.577691), (-35.470914, -69.578495),
-            (-35.473146, -69.578359), (-35.474385, -69.578319), (-35.474353, -69.577005),
-            (-35.476546, -69.576911), (-35.476760, -69.585089), (-35.497015, -69.585443),
-            (-35.497223, -69.581949), (-35.501802, -69.582158), (-35.501746, -69.582981)
-        ],
-        "nombres": [
-            "DATACENTER", "FOSC 01", "FOSC 02", "FOSC 03", "FOSC 04", "FOSC 05",
-            "FOSC 06", "FOSC 07", "FOSC 08", "FOSC 09", "FOSC 10", "TORRE WISP"
-        ],
-        "color_base": [0, 200, 255]
-    }
+        for i in range(len(coordenadas) - 1)
+    ])
+
+    return df_puntos, df_lineas, total, coordenadas
+
+# --- Streamlit ---
+st.set_page_config(page_title="Dashboard de Trazas de Fibra", layout="wide")
+st.title("📍 Mapa de trazas de fibra ")
+
+# --- Barra lateral ---
+traza = st.sidebar.selectbox("Seleccionar traza", ["TR-S-DER-02", "TR1-SUR"])
+corte_activo = st.sidebar.checkbox("Informar corte")
+
+if corte_activo:
+    distancia_corte = st.sidebar.number_input("Distancia del corte (m)", min_value=0.0)
+else:
+    distancia_corte = 0
+
+# --- Generación de datos ---
+df_puntos, df_lineas, distancia_total, coordenadas = generar_dataframe(traza)
+distancias = df_puntos['dist'].tolist()
+nombres = df_puntos['nombre'].tolist()
+
+# --- Clientes por HUB (solo para TR-S-DER-02) ---
+clientes_por_hub = {
+    "HUB 1.1": 38, "HUB 1.2": 60,
+    "HUB 2.1": 50, "HUB 2.2": 43,
+    "HUB 3.1": 35, "HUB 3.2": 55
 }
 
-# --- Sidebar
-st.sidebar.title("Configuración del Mapa")
-traza_seleccionada = st.sidebar.selectbox("Seleccioná la traza", list(trazas.keys()))
-
-# --- Cargar datos
-datos_traza = trazas[traza_seleccionada]
-coordenadas = datos_traza["coordenadas"]
-nombres = datos_traza["nombres"]
-color_base = datos_traza["color_base"]
-
-# --- Calcular distancias acumuladas
-distancias = []
-acumulada = 0
-for i in range(len(coordenadas)):
-    if i == 0:
-        distancias.append(0)
+# --- Capas de líneas y puntos ---
+colores = []
+for _, row in df_lineas.iterrows():
+    if corte_activo and row["dist_acum"] > distancia_corte:
+        colores.append([255, 0, 0])  # rojo
     else:
-        d = haversine(coordenadas[i - 1], coordenadas[i])
-        acumulada += d
-        distancias.append(round(acumulada, 1))
+        colores.append([0, 128, 255])  # azul
 
-# --- Sidebar - Corte de fibra
-st.sidebar.markdown("### Corte de fibra")
-corte_activo = st.sidebar.checkbox("Informar corte de fibra")
-
-distancia_corte = 0
-if corte_activo:
-    distancia_total = distancias[-1]
-    distancia_corte = st.sidebar.number_input(
-        "Distancia de corte (m)", min_value=0.0, max_value=distancia_total,
-        value=0.0, step=1.0
-    )
-
-# --- Mostrar distancia total
-st.markdown(f"### Distancia total del enlace: `{distancias[-1]:.1f} m`")
-
-# --- Armar puntos
-puntos = [{
-    "label": nombres[i],
-    "lat": lat,
-    "lon": lon,
-    "dist": distancias[i],
-    "dist_str": f"{distancias[i]} m"
-} for i, (lat, lon) in enumerate(coordenadas)]
-
-# --- Segmentos y lógica de corte
-segmentos = []
-marcador_corte = None
-
-for i in range(len(puntos) - 1):
-    d_inicio = puntos[i]["dist"]
-    d_fin = puntos[i+1]["dist"]
-    color = color_base
-
-    if d_inicio < distancia_corte < d_fin:
-        ratio = (distancia_corte - d_inicio) / (d_fin - d_inicio)
-        lat_interp = puntos[i]["lat"] + ratio * (puntos[i+1]["lat"] - puntos[i]["lat"])
-        lon_interp = puntos[i]["lon"] + ratio * (puntos[i+1]["lon"] - puntos[i]["lon"])
-
-        segmentos.append({
-            "coordinates": [
-                [puntos[i]["lon"], puntos[i]["lat"]],
-                [lon_interp, lat_interp]
-            ],
-            "color": color_base
-        })
-        segmentos.append({
-            "coordinates": [
-                [lon_interp, lat_interp],
-                [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-            ],
-            "color": [255, 0, 0]
-        })
-
-        marcador_corte = {
-            "lat": lat_interp,
-            "lon": lon_interp,
-            "label": "CORTE DETECTADO A POSICIÓN GPS"
-        }
-
-    else:
-        if distancia_corte and d_inicio >= distancia_corte:
-            color = [255, 0, 0]
-        segmentos.append({
-            "coordinates": [
-                [puntos[i]["lon"], puntos[i]["lat"]],
-                [puntos[i+1]["lon"], puntos[i+1]["lat"]]
-            ],
-            "color": color
-        })
-
-# --- DataFrames para Pydeck
-df_puntos = pd.DataFrame(puntos)
-df_segmentos = pd.DataFrame(segmentos)
-df_corte = pd.DataFrame([marcador_corte]) if marcador_corte else pd.DataFrame()
-
-# --- Capas del Mapa
-line_layer = pdk.Layer(
+layer_lineas = pdk.Layer(
     "LineLayer",
-    data=df_segmentos,
-    get_source_position="coordinates[0]",
-    get_target_position="coordinates[1]",
-    get_color="color",
-    get_width=4,
+    data=df_lineas.assign(color=colores),
+    get_source_position='[start_lon, start_lat]',
+    get_target_position='[end_lon, end_lat]',
+    get_color='color',
+    get_width=5,
+    pickable=True
 )
 
-point_layer = pdk.Layer(
+layer_puntos = pdk.Layer(
     "ScatterplotLayer",
     data=df_puntos,
     get_position='[lon, lat]',
-    get_color=[255, 0, 0],
-    get_radius=5,
-    pickable=True,
-)
-
-corte_layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_corte,
-    get_position='[lon, lat]',
-    get_color=[255, 255, 0],
-    get_radius=8,
+    get_color='[0, 200, 100]',
+    get_radius=10,
     pickable=True
-) if not df_corte.empty else None
-
-# --- Mapa y vista
-view_state = pdk.ViewState(
-    latitude=coordenadas[0][0],
-    longitude=coordenadas[0][1],
-    zoom=13,
-    pitch=0,
 )
 
-tooltip = {
-    "html": "<b>{label}</b><br/>Distancia: {dist_str}",
-    "style": {"backgroundColor": "white"}
-}
+# Marcador de corte
+if corte_activo and distancia_corte > 0 and distancia_corte < distancia_total:
+    for i in range(1, len(distancias)):
+        if distancias[i] >= distancia_corte:
+            ratio = ((distancia_corte - distancias[i - 1]) /
+                     (distancias[i] - distancias[i - 1]))
+            lat_corte = coordenadas[i - 1][0] + ratio * (coordenadas[i][0] - coordenadas[i - 1][0])
+            lon_corte = coordenadas[i - 1][1] + ratio * (coordenadas[i][1] - coordenadas[i - 1][1])
+            layer_corte = pdk.Layer(
+                "ScatterplotLayer",
+                data=pd.DataFrame({"lat": [lat_corte], "lon": [lon_corte]}),
+                get_position='[lon, lat]',
+                get_color='[255, 255, 0]',
+                get_radius=15,
+                pickable=True
+            )
+            break
+else:
+    layer_corte = None
 
-layers = [line_layer, point_layer]
-if corte_layer:
-    layers.append(corte_layer)
-
+# --- Mapa ---
 st.pydeck_chart(pdk.Deck(
-    layers=layers,
-    initial_view_state=view_state,
-    tooltip=tooltip
+    map_style='mapbox://styles/mapbox/light-v9',
+    initial_view_state=pdk.ViewState(
+        latitude=df_puntos['lat'].mean(),
+        longitude=df_puntos['lon'].mean(),
+        zoom=15,
+        pitch=0,
+    ),
+    layers=[layer_lineas, layer_puntos] + ([layer_corte] if layer_corte else []),
+    tooltip={"text": "{nombre}"}
 ))
 
-# --- Radar Chart (sólo para TR-S-DER-02)
-if traza_seleccionada == "TR-S-DER-02":
-    clientes_por_hub = trazas["TR-S-DER-02"]["clientes_hubs"]
-    categorias = list(clientes_por_hub.keys())
-    valores = list(clientes_por_hub.values())
-    categorias.append(categorias[0])
-    valores.append(valores[0])
-
+# --- Radar chart ---
+if traza == "TR-S-DER-02":
+    st.markdown("### Distribución de clientes por HUB")
+    labels = list(clientes_por_hub.keys())
+    values = list(clientes_por_hub.values())
     fig = go.Figure()
-
-    fig.add_trace(go.Scatterpolar(
-        r=valores,
-        theta=categorias,
-        fill='toself',
-        name='Clientes por HUB',
-        line_color='deepskyblue'
-    ))
-
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True)
-        ),
-        showlegend=False,
-        title="Distribución de Clientes por HUB"
-    )
-
+    fig.add_trace(go.Scatterpolar(r=values, theta=labels, fill='toself', name='Clientes'))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- Indicadores de clientes afectados por corte
+    # Indicadores
     if corte_activo and distancia_corte > 0:
         total_afectados = 0
         total_operativos = 0
@@ -255,3 +191,18 @@ if traza_seleccionada == "TR-S-DER-02":
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
         col2.metric("Clientes sin servicio", total_afectados)
+
+    # --- Gráfico de barras por PON ---
+    st.markdown("### Clientes por Puerto PON")
+    pon1 = clientes_por_hub.get("HUB 1.1", 0) + clientes_por_hub.get("HUB 1.2", 0)
+    pon2 = clientes_por_hub.get("HUB 2.1", 0) + clientes_por_hub.get("HUB 2.2", 0)
+
+    fig_bar = go.Figure(data=[
+        go.Bar(name='Clientes', x=["PON1", "PON2"], y=[pon1, pon2], marker_color='lightskyblue')
+    ])
+    fig_bar.update_layout(
+        xaxis_title="Puerto PON",
+        yaxis_title="Cantidad de Clientes",
+        showlegend=False
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
