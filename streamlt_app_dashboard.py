@@ -212,7 +212,7 @@ st.pydeck_chart(pdk.Deck(
     tooltip=tooltip
 ))
 
-# --- Radar Chart (sólo para TR-S-DER-02)
+# --- Radar Chart y Barras Apiladas en Tabs
 if traza_seleccionada == "TR-S-DER-02":
     clientes_por_hub = trazas["TR-S-DER-02"]["clientes_hubs"]
     categorias = list(clientes_por_hub.keys())
@@ -220,25 +220,68 @@ if traza_seleccionada == "TR-S-DER-02":
     categorias.append(categorias[0])
     valores.append(valores[0])
 
-    fig = go.Figure()
+    tab1, tab2 = st.tabs(["📈 Diagrama Chart", "📊 Diagrama de Barras"])
 
-    fig.add_trace(go.Scatterpolar(
-        r=valores,
-        theta=categorias,
-        fill='toself',
-        name='Clientes por HUB',
-        line_color='deepskyblue'
-    ))
+    with tab1:
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=valores,
+            theta=categorias,
+            fill='toself',
+            name='Clientes por HUB',
+            line_color='deepskyblue'
+        ))
 
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True)
-        ),
-        showlegend=False,
-        title="Distribución de Clientes por HUB"
-    )
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True)),
+            showlegend=False,
+            title="Distribución de Clientes por HUB"
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.plotly_chart(fig, use_container_width=True)
+    with tab2:
+        # Agrupar HUBs en PONs
+        pon_data = {
+            "PON 1": {
+                "HUB 1.1": clientes_por_hub.get("HUB 1.1", 0),
+                "HUB 1.2": clientes_por_hub.get("HUB 1.2", 0)
+            },
+            "PON 2": {
+                "HUB 2.1": clientes_por_hub.get("HUB 2.1", 0),
+                "HUB 2.2": clientes_por_hub.get("HUB 2.2", 0)
+            },
+            "PON 3": {
+                "HUB 3.1": clientes_por_hub.get("HUB 3.1", 0),
+                "HUB 3.2": clientes_por_hub.get("HUB 3.2", 0)
+            }
+        }
+
+        pon_labels = list(pon_data.keys())
+        hub1_values = [pon_data[pon].get(f"HUB {i}.1", 0) for i, pon in enumerate(pon_labels, start=1)]
+        hub2_values = [pon_data[pon].get(f"HUB {i}.2", 0) for i, pon in enumerate(pon_labels, start=1)]
+
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            x=pon_labels,
+            y=hub1_values,
+            name="HUB X.1",
+            marker_color='rgb(0, 180, 255)'
+        ))
+        fig_bar.add_trace(go.Bar(
+            x=pon_labels,
+            y=hub2_values,
+            name="HUB X.2",
+            marker_color='rgb(0, 120, 200)'
+        ))
+
+        fig_bar.update_layout(
+            barmode='stack',
+            title="Clientes por PUERTO PON",
+            xaxis_title="PUERTOS PON",
+            yaxis_title="Cantidad de Clientes"
+        )
+
+        st.plotly_chart(fig_bar, use_container_width=True)
 
     # --- Indicadores de clientes afectados por corte
     if corte_activo and distancia_corte > 0:
@@ -255,4 +298,3 @@ if traza_seleccionada == "TR-S-DER-02":
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
         col2.metric("Clientes sin servicio", total_afectados)
-
