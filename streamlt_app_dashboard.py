@@ -75,6 +75,8 @@ coordenadas = datos_traza["coordenadas"]
 nombres = datos_traza["nombres"]
 color_base = datos_traza["color_base"]
 
+corte_detectado = False
+
 # --- Calcular distancias acumuladas
 distancias = []
 acumulada = 0
