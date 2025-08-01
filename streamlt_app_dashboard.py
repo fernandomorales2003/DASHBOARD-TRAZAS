@@ -79,6 +79,23 @@ with col1:
 
 with col2:
     st.subheader("📌 Estado de Enlaces (KPI)")
+
+    for row in df.itertuples():
+        icono, color = estado_icono_color(row.Estado)
+        st.markdown(f"""
+            <div style="background-color:{color};
+                        padding:20px;
+                        border-radius:10px;
+                        text-align:center;
+                        color:white;
+                        margin-bottom:20px;
+                        width:100%;">
+                <h4>{row.Enlace}</h4>
+                <p style="font-size:24px;">{icono} <strong>{row.Estado}</strong></p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    
     enlaces_info = {
         "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
         "MZA-FTTH-02": {"Tx": 5, "Rx_cert": -20},
