@@ -217,7 +217,12 @@ st.pydeck_chart(pdk.Deck(
 if traza_seleccionada == "TR1-SUR":
     st.markdown("### Distribución de Clientes")
     col1, col2 = st.columns(2)
-    col1.metric("Clientes operativos", "750")
+    
+    if corte_detectado:
+        col1.metric("Clientes operativos", "0")
+    else:
+        col1.metric("Clientes operativos", "750")
+        
     col2.metric("Cliente", "WISP")
 
 
