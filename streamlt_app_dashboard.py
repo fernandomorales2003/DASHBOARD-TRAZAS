@@ -239,3 +239,19 @@ if traza_seleccionada == "TR-S-DER-02":
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # --- Indicadores de clientes afectados por corte
+    if corte_activo and distancia_corte > 0:
+        total_afectados = 0
+        total_operativos = 0
+        for i, nombre in enumerate(nombres):
+            if nombre.startswith("HUB") and i < len(distancias):
+                if distancias[i] > distancia_corte:
+                    total_afectados += clientes_por_hub.get(nombre, 0)
+                else:
+                    total_operativos += clientes_por_hub.get(nombre, 0)
+
+        st.markdown("### Estado de clientes según el corte")
+        col1, col2 = st.columns(2)
+        col1.metric("Clientes operativos", total_operativos)
+        col2.metric("Clientes sin servicio", total_afectados)
