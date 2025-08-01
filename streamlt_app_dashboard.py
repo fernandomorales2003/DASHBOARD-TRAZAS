@@ -239,9 +239,27 @@ with col2:
     df["Diferencia"] = df["Atenuación Actual"] - df["Atenuación Certificada"]
     enlace_mas_degradado = df.loc[df["Diferencia"].idxmax()]
     c1, c2, c3 = st.columns(3)
-    c1.metric("✅ Enlaces OK", f"{total_ok} de {total_enlaces}")
-    c2.metric("🔻 Enlace más degradado", enlace_mas_degradado["Enlace"])
-    c3.metric("📉 Variación potencia", f"{enlace_mas_degradado['Diferencia']:.2f} dB")
+    c1.markdown(f"""
+    <div style="text-align:center;">
+        <div style="font-weight:bold;">✅ Enlaces OK</div>
+        <div style="font-size:12px;">{total_ok} de {total_enlaces}</div>
+    </div>
+""", unsafe_allow_html=True)
+
+c2.markdown(f"""
+    <div style="text-align:center;">
+        <div style="font-weight:bold;">🔻 Enlace más degradado</div>
+        <div style="font-size:12px;">{enlace_mas_degradado["Enlace"]}</div>
+    </div>
+""", unsafe_allow_html=True)
+
+c3.markdown(f"""
+    <div style="text-align:center;">
+        <div style="font-weight:bold;">📉 Variación potencia</div>
+        <div style="font-size:12px;">{enlace_mas_degradado['Diferencia']:.2f} dB</div>
+    </div>
+""", unsafe_allow_html=True)
+
 
 with col3:
     pass
