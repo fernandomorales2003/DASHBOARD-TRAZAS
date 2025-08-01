@@ -75,6 +75,8 @@ coordenadas = datos_traza["coordenadas"]
 nombres = datos_traza["nombres"]
 color_base = datos_traza["color_base"]
 
+corte_detectado = False
+
 # --- Calcular distancias acumuladas
 distancias = []
 acumulada = 0
@@ -99,7 +101,7 @@ if corte_activo:
     )
 
 # --- Mostrar distancia total
-st.markdown(f"### Distancia total del enlace: `{distancias[-1]:.1f} m`")
+st.markdown(f"### Distancia total del enlace: {distancias[-1]:.1f} m")
 
 # --- Armar puntos
 puntos = [{
@@ -212,6 +214,22 @@ st.pydeck_chart(pdk.Deck(
     initial_view_state=view_state,
     tooltip=tooltip
 ))
+# --- Indicador para TR1-SUR
+if traza_seleccionada == "TR1-SUR":
+    st.markdown("### Distribución de Clientes")
+    col1, col2 = st.columns(2)
+
+    # Si corte_detectado no existe, asumimos False
+    try:
+        if corte_detectado:
+            col1.metric("Clientes operativos", "0")
+        else:
+            col1.metric("Clientes operativos", "750")
+    except NameError:
+        col1.metric("Clientes operativos", "750")
+
+    col2.metric("Cliente", "WISP")
+
 
 # --- Radar Chart y Barras Apiladas en Tabs
 if traza_seleccionada == "TR-S-DER-02":
@@ -299,3 +317,4 @@ if traza_seleccionada == "TR-S-DER-02":
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
         col2.metric("Clientes sin servicio", total_afectados)
+
