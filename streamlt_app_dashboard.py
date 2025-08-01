@@ -80,22 +80,6 @@ with col1:
 with col2:
     st.subheader("📌 Estado de Enlaces (KPI)")
 
-    for row in df.itertuples():
-        icono, color = estado_icono_color(row.Estado)
-        st.markdown(f"""
-            <div style="background-color:{color};
-                        padding:20px;
-                        border-radius:10px;
-                        text-align:center;
-                        color:white;
-                        margin-bottom:20px;
-                        width:100%;">
-                <h4>{row.Enlace}</h4>
-                <p style="font-size:24px;">{icono} <strong>{row.Estado}</strong></p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-    
     enlaces_info = {
         "MZA-FTTH-01": {"Tx": 0, "Rx_cert": -20},
         "MZA-FTTH-02": {"Tx": 5, "Rx_cert": -20},
@@ -144,21 +128,21 @@ with col2:
         })
 
     df = pd.DataFrame(datos)
-    cols_kpi = st.columns(3)
-    for i, row in enumerate(df.itertuples()):
+
+    for row in df.itertuples():
         icono, color = estado_icono_color(row.Estado)
-        with cols_kpi[i % 3]:
-            st.markdown(f"""
-                <div style="background-color:{color};
-                            padding:20px;
-                            border-radius:10px;
-                            text-align:center;
-                            color:white;
-                            margin-bottom:20px;">
-                    <h4>{row.Enlace}</h4>
-                    <p style="font-size:24px;">{icono} <strong>{row.Estado}</strong></p>
-                </div>
-            """, unsafe_allow_html=True)
+        st.markdown(f"""
+            <div style="background-color:{color};
+                        padding:20px;
+                        border-radius:10px;
+                        text-align:center;
+                        color:white;
+                        margin-bottom:20px;
+                        width:100%;">
+                <h4>{row.Enlace}</h4>
+                <p style="font-size:24px;">{icono} <strong>{row.Estado}</strong></p>
+            </div>
+        """, unsafe_allow_html=True)
 
 with col3:
     pass
@@ -170,9 +154,9 @@ col1, col2, col3 = st.columns(3, border=True)
 with col1:
     st.subheader("📈 Curvas OTDR Comparativas")
     fig, ax = plt.subplots(figsize=(8.4, 4.2))
-    x_2024, y_2024 = generar_curva(atenuacion_por_km, eventos_patron)
+    x_2024, y_202_4 = generar_curva(atenuacion_por_km, eventos_patron)
     x_2025, y_2025 = generar_curva(atenuacion_por_km, eventos_2025)
-    ax.plot(x_2024, y_2024, label="MZA-NORTE-2024-06")
+    ax.plot(x_2024, y_202_4, label="MZA-NORTE-2024-06")
     ax.plot(x_2025, y_2025, label="MZA-NORTE-2025-06")
     for punto in eventos_extra.keys():
         y_val = -atenuacion_por_km * punto - sum(v for k, v in eventos_2025.items() if k <= punto)
