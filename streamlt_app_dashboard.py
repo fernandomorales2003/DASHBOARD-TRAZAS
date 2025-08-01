@@ -142,7 +142,8 @@ for i in range(len(puntos) - 1):
         marcador_corte = {
             "lat": lat_interp,
             "lon": lon_interp,
-            "label": "CORTE DETECTADO A POSICIÓN GPS"
+            "label": "CORTE DETECTADO A POSICIÓN ",
+            "dist_str": f"{distancia_corte:.1f} m"
         }
 
     else:
