@@ -131,7 +131,7 @@ with col2:
     for row in df.itertuples():
     icono, color = estado_icono_color(row.Estado)
     st.markdown(f"""
-        <div style="background-color:{color};
+    <div style="background-color:{color};
                     padding:8px 20px;
                     border-radius:10px;
                     text-align:center;
@@ -142,8 +142,6 @@ with col2:
             <h5 style="margin: 4px 0;">{icono} {row.Enlace} – <span style="font-weight:normal;">{row.Estado}</span></h5>
         </div>
     """, unsafe_allow_html=True)
-
-
 
 with col3:
     pass
