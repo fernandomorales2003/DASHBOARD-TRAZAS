@@ -213,6 +213,14 @@ st.pydeck_chart(pdk.Deck(
     tooltip=tooltip
 ))
 
+# --- Indicador para TR1-SUR
+if traza_seleccionada == "TR1-SUR":
+    st.markdown("### Distribución de Clientes")
+    col1, col2 = st.columns(2)
+    col1.metric("Clientes operativos", "750")
+    col2.metric("Cliente", "WISP")
+
+
 # --- Radar Chart y Barras Apiladas en Tabs
 if traza_seleccionada == "TR-S-DER-02":
     clientes_por_hub = trazas["TR-S-DER-02"]["clientes_hubs"]
