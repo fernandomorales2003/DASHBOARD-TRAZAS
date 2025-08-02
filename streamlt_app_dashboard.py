@@ -315,5 +315,5 @@ if traza_seleccionada == "TR-S-DER-02":
         st.markdown("### Estado de clientes según el corte")
         col1, col2 = st.columns(2)
         col1.metric("Clientes operativos", total_operativos)
-        col2.metric("Clientes sin servicio", total_afectados) 
+        col2.metric("Clientes sin servicio", total_afectados)
 
