@@ -179,7 +179,6 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 with col3:
-with col3:
     import math
     import pydeck as pdk
 
