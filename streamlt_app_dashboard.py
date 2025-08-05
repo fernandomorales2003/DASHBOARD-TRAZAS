@@ -145,7 +145,12 @@ with col2:
 
 
 with col3:
-    pass
+    st.header("📡 Potencias Recepción de HUBs")
+
+hubs = ["HUB 1.1", "HUB 1.2", "HUB 2.1", "HUB 2.2", "HUB 3.1", "HUB 3.2"]
+potencias = np.round(np.random.uniform(-21, -18, size=len(hubs)), 2)
+df_potencias = pd.DataFrame({"HUB": hubs, "Potencia (dBm)": potencias})
+st.dataframe(df_potencias, use_container_width=True)
 
 
 # ---------- FILA 2 ----------
