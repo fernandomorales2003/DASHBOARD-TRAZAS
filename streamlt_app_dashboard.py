@@ -179,7 +179,7 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 with col3:
-     ----------- Fila 2: Mapa con detección de corte -----------
+#----------- Fila 2: Mapa con detección de corte -----------
 
 # --- Función para calcular distancia entre coordenadas (Haversine)
 def haversine(coord1, coord2):
