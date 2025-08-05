@@ -3,8 +3,26 @@ import pandas as pd
 import pydeck as pdk
 import math
 import plotly.graph_objects as go
+import numpy as np
 
 st.set_page_config(page_title="Dashboard Recorridos de Fibra", layout="wide")
+
+
+# Definir nombres de HUBs
+hubs = ["HUB 1.1", "HUB 1.2", "HUB 2.1", "HUB 2.2", "HUB 3.1", "HUB 3.2"]
+
+# Simular valores de potencia entre -18 dBm y -21 dBm (negativos)
+potencias = np.round(np.random.uniform(-21, -18, size=len(hubs)), 2)
+
+# Crear DataFrame
+df_potencias = pd.DataFrame({
+    "HUB": hubs,
+    "Potencia (dBm)": potencias
+})
+
+import caas_jupyter_tools as caas
+caas.display_dataframe_to_user(name="Potencias de HUB simuladas", dataframe=df_potencias)
+
 
 # --- Función para calcular distancia entre coordenadas (Haversine)
 def haversine(coord1, coord2):
