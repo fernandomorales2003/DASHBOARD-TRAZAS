@@ -182,7 +182,7 @@ with col3:
 #----------- Fila 2: Mapa con detección de corte -----------
 
 # --- Función para calcular distancia entre coordenadas (Haversine)
-def haversine(coord1, coord2):
+    def haversine(coord1, coord2):
     R = 6371000
     lat1, lon1 = coord1
     lat2, lon2 = coord2
